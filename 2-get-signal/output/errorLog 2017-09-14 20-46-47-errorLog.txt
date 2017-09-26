@@ -1,2 +1,0 @@
-2017-09-14 20-46-47: monitorStockshttps://www.swedishbulls.com/SignalPage.aspx?lang=en&Ticker=COPP-B.ST: list index out of range
-2017-09-14 20-46-47: monitorStockshttps://www.swedishbulls.com/SignalPage.aspx?lang=en&Ticker=CE.ST: list index out of range

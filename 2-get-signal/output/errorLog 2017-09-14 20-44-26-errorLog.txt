@@ -1,2 +1,0 @@
-2017-09-14 20-44-26: (email)COPP-B.ST: (535, b'5.7.8 Username and Password not accepted. Learn more at\n5.7.8  https://support.google.com/mail/?p=BadCredentials n3sm7894702edl.96 - gsmtp')
-2017-09-14 20-44-26: https://www.swedishbulls.com/SignalPage.aspx?lang=en&Ticker=COPP-B.ST: 
