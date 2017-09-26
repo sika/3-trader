@@ -1,0 +1,3 @@
+BWL.ST: list index out of range
+MIND.ST: list index out of range
+NOMI.ST: list index out of range

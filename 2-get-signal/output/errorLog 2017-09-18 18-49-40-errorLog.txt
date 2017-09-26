@@ -1,0 +1,2 @@
+0: 2017-09-18 18-49-40: (monitorStocks)https://www.swedishbulls.com/SignalPage.aspx?lang=en&Ticker=NOMI.ST: list index out of range
+1: 2017-09-18 18-49-40: (monitorStocks)https://www.swedishbulls.com/SignalPage.aspx?lang=en&Ticker=NOMI.ST: list index out of range
