@@ -2,7 +2,9 @@
 # only get SELL for stocks held
 # emails being sent even if already sent before
 # set (get) real names in getStocks csv file
-
+import sys
+import imaplib
+import email
 import os
 import csv
 import json
@@ -76,7 +78,7 @@ def isEmailSent(stockSignalDataTemp):
         else:
             return False
 
-def getStocks(): # get 30 highest stocks (NOTE! sort before running script)
+def getLocalStocks(): # get 30 highest stocks (NOTE! sort before running script)
     colNames = ('nameShort', 'name', 'url', 'value', 'nameNordnet')
     listTemp = []
     with open(pathFile + sPathInput + '/stockValue.csv', 'rt', encoding='ISO-8859-1') as file:
@@ -133,23 +135,60 @@ def notify(stockSignalDataTemp):
         smtp.login(cred.get('email'), cred.get('pwd'))
         smtp.sendmail(cred.get('email'), "simon.noworkemail@icloud.com", msg) # 1 from, 2 to
     except Exception as e:
-        print ("something went wrong in notify: " + str(e))
+        print ("something went wrong in notify(): " + str(e))
         writeErrorLog(e, '(notify) ' + stockSignalDataTemp.get('nameShort'))
     else:
         emailSent(stockSignalDataTemp) # add data to list of sent emails
         print ('EMAIL SENT FOR: ', stockSignalDataTemp.get('nameShort'))
 
+def getEmails():
+    boughtStock = []
+    soldStock = []
+    cred = getCredentials()
+    M = imaplib.IMAP4_SSL('imap.gmail.com') #create imap object
+    try:
+        M.login(cred.get('email'), cred.get('pwd'))
+        M.select("inbox") # select mailbox
+        typ, data = M.search(None, 'ALL') #getting all emails
+        for num in data[0].split():
+            typ, data = M.fetch(num, '(RFC822)') # '(UID BODY[TEXT])'
+            pdb.set_trace()
+            msg = email.message_from_string(data[0][1].decode('utf-8'))
+            # find(str, beg=0 end=len(data[0][1].decode('utf-8')))
+            pdb.set_trace()
+            print (num, data[0][1])
+            # print('Message %s\n%s\n' % (num, data[0][1]))
+    except Exception as e: # catch error
+            print ("something went wrong in checkEmail(): " + str(e))
+            # writeErrorLog(e, '(monitorStocks)' + item.get('url'))
+    else:
+        M.close()
+        M.logout()
+    return
+
+
+def setStocksHeld():
+    return
+
 # script start
-stockList = getStocks()
+stockList = getLocalStocks()
+# getEmails()
+
+# replace below
+# å	= c3 a5; Å = c3 85
+# ä	= c3 a4; Ä = c3 84
+# ö	= c3 b6; Ö = c3 96
+#
+# Logic:
+# - name, amount (antal), signal, date
 
 # schedule.every(20).seconds.do(monitorStocks, stockList)
-schedule.every().day.at("09:05").do(monitorStocks, stockList)
-schedule.every().day.at("12:00").do(monitorStocks, stockList)
-schedule.every().day.at("17:00").do(monitorStocks, stockList)
-schedule.every().day.at("19:00").do(monitorStocks, stockList)
-schedule.every().day.at("20:00").do(monitorStocks, stockList)
-schedule.every().day.at("21:00").do(monitorStocks, stockList)
-schedule.every().day.at("21:38").do(monitorStocks, stockList)
+# schedule.every().day.at("09:05").do(monitorStocks, stockList)
+# schedule.every().day.at("12:00").do(monitorStocks, stockList)
+# schedule.every().day.at("17:00").do(monitorStocks, stockList)
+# schedule.every().day.at("19:30").do(monitorStocks, stockList)
+schedule.every().day.at("20:45").do(monitorStocks, stockList)
+# schedule.every().day.at("21:00").do(monitorStocks, stockList)
 
 while True:
     if dateStamp != date.today(): # if new day, reset global variables
