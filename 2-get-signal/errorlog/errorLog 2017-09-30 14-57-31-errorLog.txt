@@ -1,0 +1,1 @@
+0: 2017-09-30 14-57-31: (setStocksHeld) NO DATA PARAMETER: list index out of range

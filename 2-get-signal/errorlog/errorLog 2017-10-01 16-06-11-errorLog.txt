@@ -1,0 +1,1 @@
+0: 2017-10-01 16-06-11: (setStocksHeld) NO DATA PARAMETER: [Errno 13] Permission denied: '/mnt/d/Mina dokument/Dropbox/Development/nordnet-api-00/python/3-trader/2-get-signal/output/stocksHeld.csv'
