@@ -23,7 +23,7 @@ time = datetime.time
 timeDateStampStr = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S") # don't use ":", it will crash script
 dateStamp = date.today()
 dateStampStr = dateStamp.strftime('%d.%m.%Y') # today's date in SB format
-daysPast = 5
+daysPast = 4
 dateStampPast = (dateStamp - datetime.timedelta(days=daysPast)) #for testing with days back
 dateStampPastStr = (dateStamp - datetime.timedelta(days=daysPast)).strftime('%d.%m.%Y') #for testing with days back
 emailsSent = []
@@ -32,6 +32,8 @@ stocksBought = []
 global stocksSold
 stocksSold = []
 errorCounter = 0
+global amountOfStocksToCheck
+amountOfStocksToCheck = 30
 
 sPathOutput = "/output/"
 sPathInput = "/input/"
@@ -99,7 +101,7 @@ def getLocalStocks(): # get 30 highest stocks (NOTE! sort before running script)
                 continue # skip first row
             listTemp.append(row)
             counter += 1
-            if counter == 30:
+            if counter == amountOfStocksToCheck:
                 return listTemp
                 break
 
@@ -113,12 +115,15 @@ def monitorStocks(stockListTemp):
 
             signal = soup.find_all('td', text=re.compile("€100"))[2].parent.parent.parent.parent.parent.next_sibling.contents[3].get_text()
 
-            price = soup.find_all('td', text=re.compile("€100"))[2].parent.parent.parent.parent.parent.next_sibling.contents[2].get_text()
+            price = soup.find_all('td', text=re.compile("€100"))[2].parent.parent.parent.parent.parent.next_sibling.contents[2].get_text() # get buy price
 
             dateStr = soup.find_all('td', text=re.compile("€100"))[2].parent.parent.parent.parent.parent.next_sibling.contents[1].get_text()
 
+            closingPriceStr = soup.find_all(id='MainContent_LastClose')[0].get_text() # get closing price
+
+            # if dateStr == dateStampPastStr:
             if dateStr == dateStampStr:
-                stockSignalData = {'nameNordnet': item.get('nameNordnet'), 'nameShort': item.get('nameShort'), 'signal': signal, 'price': price, 'url': item.get('url')}
+                stockSignalData = {'nameNordnet': item.get('nameNordnet'), 'nameShort': item.get('nameShort'), 'signal': signal, 'price': price, 'url': item.get('url'), 'closingPrice': closingPriceStr}
                 notify(stockSignalData)
 
             print ("stock: " + item.get('nameNordnet') + "\t signal: " + signal + "\t price: " + price + "\t date: " + dateStr)
@@ -135,10 +140,17 @@ def notify(stockSignalDataTemp):
 
         signalStr = stockSignalDataTemp.get('signal')
 
-        if signalStr == 'SHORT' or signalStr == 'SELL':
+        if signalStr == 'SHORT' or signalStr == 'SELL': #if stock is not held, don't want SELL/SHORT signal
             if isStockHeld(stockSignalDataTemp):
                 pass
-            else: #if stock is not held, don't want SELL/SHORT signal
+            else:
+                return
+
+        closingPriceStr = stockSignalDataTemp.get('closingPrice')
+        buyPrice = stockSignalDataTemp.get('price')
+        if signalStr == 'BUY': #don't notify if closing price more than 0.5% higher than buy
+            if float(closingPriceStr)/float(buyPrice) > 1.05:
+                print('closing price is too high to buy (', str(float(closingPriceStr)/float(buyPrice)), ')')
                 return
 
         cred = getCredentials() #get login credentials
@@ -265,10 +277,10 @@ def setStocksHeld():
 def isStockHeld(stockSignalDataTemp):
     try:
         for bought in stocksBought:
-            stockSoldName = bought.get('nameNordnet')
-            stockSoldAmount = bought.get('stockAmount')
+            stockBoughtName = bought.get('nameNordnet')
+            stockBoughtAmount = bought.get('stockAmount')
             stockSignalName = stockSignalDataTemp.get('nameNordnet')
-            if stockSoldName == stockSignalName and stockSoldAmount != 0:
+            if stockBoughtName == stockSignalName and stockBoughtAmount != 0:
                 return True
         return False
     except Exception as e: # catch error
@@ -293,7 +305,6 @@ def scriptFunction():
 
 # script start
 # scriptFunction()
-
 # schedule.every(20).seconds.do(scriptFunction)
 schedule.every().day.at("20:45").do(scriptFunction)
 
