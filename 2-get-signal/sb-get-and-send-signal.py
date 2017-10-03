@@ -23,7 +23,7 @@ time = datetime.time
 timeDateStampStr = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S") # don't use ":", it will crash script
 dateStamp = date.today()
 dateStampStr = dateStamp.strftime('%d.%m.%Y') # today's date in SB format
-daysPast = 4
+daysPast = 1
 dateStampPast = (dateStamp - datetime.timedelta(days=daysPast)) #for testing with days back
 dateStampPastStr = (dateStamp - datetime.timedelta(days=daysPast)).strftime('%d.%m.%Y') #for testing with days back
 emailsSent = []
@@ -34,6 +34,7 @@ stocksSold = []
 errorCounter = 0
 global amountOfStocksToCheck
 amountOfStocksToCheck = 30
+maxAmountOfStocksToHold = 5
 
 sPathOutput = "/output/"
 sPathInput = "/input/"
@@ -146,18 +147,26 @@ def notify(stockSignalDataTemp):
             else:
                 return
 
+        if signalStr == 'BUY': # don't notify if already holding more than x (maxAmountOfStocksToHold) amount of stocks
+            if isMaxHoldStocks():
+                return
+
         closingPriceStr = stockSignalDataTemp.get('closingPrice')
         buyPrice = stockSignalDataTemp.get('price')
+        percentChange = 0
         if signalStr == 'BUY': #don't notify if closing price more than 0.5% higher than buy
-            if float(closingPriceStr)/float(buyPrice) > 1.05:
-                print('closing price is too high to buy (', str(float(closingPriceStr)/float(buyPrice)), ')')
+            if ((float(closingPriceStr)/float(buyPrice)*100)-100) > 0.5:
+                print('closing price is too high to buy (', str((float(closingPriceStr)/float(buyPrice)*100)-100), ')')
                 return
+            else:
+                percentChange = round(((float(closingPriceStr)/float(buyPrice)*100)-100), 2)
 
         cred = getCredentials() #get login credentials
 
         sbj = 'sb-notify:\t' + (stockSignalDataTemp.get('nameNordnet') + '\t' + stockSignalDataTemp.get('nameShort') + '\t' + stockSignalDataTemp.get('signal') + '\t' + stockSignalDataTemp.get('price'))
 
-        body = (stockSignalDataTemp.get('nameNordnet') + '\t' + stockSignalDataTemp.get('nameShort') + '\t' + stockSignalDataTemp.get('signal') + '\t' + stockSignalDataTemp.get('price') + '\t' + stockSignalDataTemp.get('url'))
+        body = (stockSignalDataTemp.get('nameNordnet') + '\r\n' + stockSignalDataTemp.get('nameShort') + '\r\n' + stockSignalDataTemp.get('signal') + '\r\nPrice: ' + stockSignalDataTemp.get('price') + '\r\nClosing price: ' + stockSignalDataTemp.get('closingPrice') + '\r\nPercent change: '
+        + str(percentChange) + '\r\nURL: ' + stockSignalDataTemp.get('url'))
 
         msg = 'Subject: {}\n\n{}'.format(sbj, body)
 
@@ -288,6 +297,17 @@ def isStockHeld(stockSignalDataTemp):
         writeErrorLog(e, '(setStocksHeld) NO DATA PARAMETER')
     else:
         print ('SUCCESS in setStocksHeld()')
+
+def isMaxHoldStocks():
+    nbrOfStocksHeld = 0
+    for bought in stocksBought:
+        if bought.get('stockAmount') != 0:
+            nbrOfStocksHeld += 1
+    if nbrOfStocksHeld >= maxAmountOfStocksToHold:
+        print ('number of stocks held already at max:', nbrOfStocksHeld)
+        return True
+    else:
+        return False
 
 def scriptFunction():
     print ("scriptFunction function:", getTimeNowStr())
