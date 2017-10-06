@@ -1,0 +1,26 @@
+{
+  'Date': 'Wed, 04 Oct 2017 09:43:38 GMT',
+  'Set-Cookie': "ElyHistory0='';expires=1; Max-Age=0; Path=/; Domain=.nordnet.se",
+  'Content-Length': '20',
+  'Connection': 'Keep-Alive',
+  'Keep-Alive': 'timeout=5, max=100',
+  'Vary': 'Accept-Encoding,User-Agent',
+  'Server': 'Nordnet API',
+  'content-type': 'application/json; charset=UTF-8',
+  'Content-Encoding': 'gzip'
+}
+
+/*request header*/
+POST /api/2/login/anonymous HTTP/1.1
+Host: www.nordnet.se
+Connection: keep-alive
+Content-Length: 0
+accept: application/json
+Origin: https://www.nordnet.se
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36
+ntag: 829F884E8F2B150D619EB9119EB0E7
+content-type: application/x-www-form-urlencoded
+Referer: https://www.nordnet.se/mux/login/start.html?cmpi=start-loggain&state=signin
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en-US,en;q=0.8,sv;q=0.6
+Cookie: accepted_cookies=1; __utmx=211316746.nhRFAB50R76LBMEbPTnEQw$0:0; __utmxx=211316746.nhRFAB50R76LBMEbPTnEQw$0:1500991568:8035200; sv-uts="NzBiYTkzZjAtNjdhNS0xMWU3LTgxZmMtMDA1MDU2YjcwMGI1IzkjMTUwNDI3NDYyMTE2OQ=="; hslb=; TUX-COOKIE=rd192o00000000000000000000ffff0a40c024o80; JSESSIONID=BCF79EDFB230840EF8BD773C9FA5E857; webapp-cmse=rd797o00000000000000000000ffff0a57616eo80; Humany__clientId=cfe4d4a3-6c55-b24f-55ca-65e8fa63db7f; responsive=true; xsrf=f6683cf36551ab9a6dca5e4ad5f1c7c4e7e9a98b7f708ed980c23ff66cec9c95; _ga=GA1.2.1764416254.1496663690; _gid=GA1.2.1169416099.1507056090; LOL=4b893465183c208f047f5a7a9f6c472d987c11b7; NOW=9affb863fa76203b971940d34b71c9e0112941bf
