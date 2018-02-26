@@ -1,0 +1,2 @@
+0: 2017-10-02 21-32-48: (notify) TRANS.ST: [Errno -3] Temporary failure in name resolution
+1: 2017-10-02 21-32-48: (monitorStocks)https://www.swedishbulls.com/SignalPage.aspx?lang=en&Ticker=AUR.ST: <urlopen error [Errno -3] Temporary failure in name resolution>

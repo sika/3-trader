@@ -1,0 +1,9 @@
+Köp:
+- ändra inte pris, låt i så fall inte gå igenom
+
+Sälj:
+- Sätt pris 5% under marknadspris; ska ändå säljas till dyrare om köpare finns
+- Nordnet har förmodligen en gräns på 15% under/över marknadspris
+
+Statistik:
+- Hur många ordrar har INTE gått igenom

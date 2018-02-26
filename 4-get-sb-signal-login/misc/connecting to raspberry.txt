@@ -1,0 +1,5 @@
+Raspberry:
+- Install and enable VNC Server
+
+PC:
+- Install VNC Viewer

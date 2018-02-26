@@ -41,7 +41,7 @@ def getWebsite(stockNameTemp):
         stockValueAndUrl['URL'] = sbGenericUrl+stockNameTemp
         htmlCode = urlopen(stockValueAndUrl['URL']).read() # get the html from website
         soup = BeautifulSoup(htmlCode, 'html.parser')
-        stockValueAndUrl['VALUE'] = soup.find_all('td', text=re.compile("€100"))[2].parent.parent.parent.parent.parent.next_sibling.contents[5].get_text() # return the multiplier value of last 6 (0), 12 (1) or 24 (2) months
+        stockValueAndUrl['VALUE'] = soup.find_all('td', text=re.compile("€100"))[0].parent.parent.parent.parent.parent.next_sibling.contents[5].get_text() # return the multiplier value of last 6 (0), 12 (1) or 24 (2) months
     except Exception as e: # catch error
         writeErrorLog(str(e), stockNameTemp)
         stockValueAndUrl['VALUE'] = "0"

@@ -1,0 +1,3 @@
+0:2017-10-27 12-05-01: : 'Response' object has no attribute 'statuscode'
+1:2017-10-27 12-06-12: data: error
+2:2017-10-27 12-08-42: : 

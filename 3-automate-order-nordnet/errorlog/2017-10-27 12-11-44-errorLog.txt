@@ -1,0 +1,2 @@
+0:2017-10-27 12-11-45: Calling function: checkStatus; Error: 'Response' object has no attribute 'statuscode'; Data: 
+1:2017-10-27 12-13-05: Calling function: placeOrder; Error: ; Data: 

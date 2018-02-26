@@ -1,0 +1,2 @@
+0:2017-10-27 12-13-07: Calling function: checkStatus; Error: 201 https://www.nordnet.se/mux/login/start.html?cmpi=start-loggain&state=signin; Data: checkStatus
+1:2017-10-27 12-14-53: Calling function: placeOrder; Error: ; Data: 

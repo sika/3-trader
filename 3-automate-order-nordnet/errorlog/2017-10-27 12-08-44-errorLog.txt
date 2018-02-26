@@ -1,0 +1,2 @@
+0:2017-10-27 12-08-45: checkStatus: : 'Response' object has no attribute 'statuscode'
+1:2017-10-27 12-11-42: placeOrder: : 
