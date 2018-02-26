@@ -98,7 +98,6 @@ gloEmailRuleFw = '(-)'
 # time
 gloOpeningTime = datetime.time(9,0)
 gloClosingTime = datetime.time(17,30)
-glo_dateToday = None
 
 # amount to deal with
 gloCurrentNumberOfStocksHeld = gloMaxNumberOfStocks = None # saftey reason: will not trade if something goes wrong
@@ -985,8 +984,7 @@ setStockStatus()
 while True:
     schedule.run_pending()
     if isMarketOpen():
-        print('entered is market')
-        # sbGetSignal()
+        sbGetSignal()
         time.sleep(120)
 
 # # for testing:
