@@ -1001,7 +1001,6 @@ setMaxNumberOfStocks(5)
 setAmountAvailableStatic(100)
 initStockStatus()
 setStockStatus()
-isMaxStockHeldAndActive()
 while True:
     schedule.run_pending()
     if isMarketOpen():
