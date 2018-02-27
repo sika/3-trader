@@ -1,4 +1,7 @@
 DATE;TIME;DAY;ERROR_COUNTER;E_MSG;CALLING_FUNCTION
-2018-02-25;16:38;Sunday;1;[Errno 2] No such file or directory: '/mnt/e/Dokument/Dropbox/Development/nordnet-api-00/python/3-trader/4-get-sb-signal-login/input/stockStatusXXX.csv';initStockStatus
-2018-02-25;16:42;Sunday;1;[Errno 2] No such file or directory: '/mnt/e/Dokument/Dropbox/Development/nordnet-api-00/python/3-trader/4-get-sb-signal-login/input/stockStatusXXX.csv';initStockStatus
-2018-02-25;16:48;Sunday;1;[Errno 2] No such file or directory: '/mnt/e/Dokument/Dropbox/Development/nordnet-api-00/python/3-trader/4-get-sb-signal-login/input/stockStatusXXX.csv';initStockStatus
+2018-02-27;13:16;Tuesday;1;"{'reason': 'OK',
+ 'status_code': '200',
+ 'url': 'https://www.nordnet.se/blikund/start.html'}";<module>
+2018-02-27;13:25;Tuesday;1;;<module>
+2018-02-27;13:26;Tuesday;1;HTTPSConnectionPool(host='www.swedihbulls.com', port=443): Max retries exceeded with url: /Signin.aspx?lang=en (Caused by NewConnectionError('<urllib3.connection.VerifiedHTTPSConnection object at 0x7f4b810b6a90>: Failed to establish a new connection: [Errno -2] Name or service not known',));<module>
+2018-02-27;13:33;Tuesday;1;400 Bad Request: The browser (or proxy) sent a request that this server could not understand.;<module>

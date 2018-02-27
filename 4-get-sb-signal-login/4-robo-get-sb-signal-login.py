@@ -62,9 +62,9 @@ gloStatus_tempValue_ActiveNnSell = 'Sälj'
 gloStatus_tempValue_ActiveNnBuy = 'Köp'
 gloStatus_Value_ActiveBuy = 'BUY'
 gloStatus_Value_ActiveSell = 'SELL'
+gloStatus_Value_ActiveDefault = ''
 gloStatus_Value_HeldYes = 'YES'
 gloStatus_Value_HeldDefault = ''
-gloStatus_Value_ActiveDefault = ''
 gloStatus_Value_StocksAmountHeldDefault = ''
 gloStatus_Value_ActiveTempDefault = ''
 gloStatus_Value_PriceDefault = ''
@@ -177,10 +177,10 @@ def writeErrorLog (callingFunction, eStr):
         errorCounter = 'ERROR_COUNTER'
         errorCallingFunction = 'CALLING_FUNCTION'
         errorMsg = 'E_MSG'
-        file_orderStat = pathFile + sPathError + 'errorLog.csv'
-        file_exists = os.path.isfile(file_orderStat)
+        file_errorLog = pathFile + sPathError + 'errorLog.csv'
+        file_exists = os.path.isfile(file_errorLog)
         if glo_counter_error <= 100:
-            with open (file_orderStat, 'a') as csvFile:
+            with open (file_errorLog, 'a') as csvFile:
                 fieldnames = [errorDate, errorTime, errorDay, errorCounter, errorMsg, errorCallingFunction]
                 writer = csv.DictWriter(csvFile, fieldnames=fieldnames, delimiter = ';')
                 if not file_exists:
@@ -735,19 +735,22 @@ def nordnetPlaceOrder(sbStockNameShort, sbSignalType): #sbSignalType = BUY or SE
         urlOrder = 'https://www.nordnet.se/api/2/accounts/18272500/orders'
         r = s.post(urlOrder, headers=header, data=payloadOrder)
         if r.status_code == 200:
-            print ('ORDER PLACED!')
+            print ('SUCCESS: order placed!')
             print(sbStockNameShort)
             pprint(payloadOrder)
             setStockActiveTemp(sbStockNameShort, sbSignalType)
             writeOrderStatistics(sbStockNameShort, payloadOrder)
-            # setStockActiveTimer(sbStockNameShort, sbSignalType)
-            # BP()
-            # updateStocksNumberHeld(sbStockNameShort, payloadOrder.get(gloOrderNnKeyVolume), sbSignalType) #not needed
             sendEmail(sbStockNameShort + ':' + sbSignalType, sbStockNameShort + '\n'+ pformat(payloadOrder))
         else:
-            print('PLACING ORDER', 'failed!')
+            print('FAILED: order failed!')
             print('status_code:', r.status_code)
-            print('status_code:', r.text)
+            print('text:', r.text)
+            responseDict = {
+            'status_code': str(r.status_code),
+            'reason': r.reason,
+            'url': r.url
+            }
+            writeErrorLog(inspect.stack()[0][3], pformat(responseDict))
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
@@ -803,9 +806,18 @@ def nordnetLogin():
 
         if r.status_code != 200:
             print(urlPostLogin, 'failed!')
+            print('status_code:', r.status_code)
+            print('text:', r.text)
+            responseDict = {
+            'status_code': str(r.status_code),
+            'reason': r.reason,
+            'url': r.url
+            }
+            writeErrorLog(inspect.stack()[0][3], pformat(responseDict))
     except Exception as e: # catch error
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
-        writeErrorLog(inspect.stack()[0][3], str(e))
+        msg = 'status code: ' + r.status_code + '; ' + r.text
+        writeErrorLog(inspect.stack()[0][3], msg)
     else:
         print('END', inspect.stack()[0][3], '\n')
         return (r, header, s)
@@ -843,7 +855,6 @@ def sbGetSignal():
         if rowWatchlist is not None:
             for row in rowWatchlist:
                 sbStockNameShort = row.td.a.get_text()
-                print (sbStockNameShort)
                 sbSignal = row.find_all('td')[7].get_text()
                 if sbSignal == gloSbSignalShort: # SELL or SHORT = SELL
                     sbSignal = gloSbSignalSell
@@ -855,16 +866,6 @@ def sbGetSignal():
                     setStockStatus()
                 elif sbSignal == gloSbSignalBuy and isStockActiveTemp(sbStockNameShort, gloSbSignalSell):
                     setStockStatus()
-                # setStockStatus() # only non-tempActive will pass down here
-
-                    # if isStockActiveLongTime((sbStockNameShort, sbSignal))
-                    # if not isStockActive(sbStockNameShort, sbSignal):
-                    #     delStockActiveTemp(sbStockNameShort)
-                #     elif isStockActive(sbStockNameShort, sbSignal):
-                        # if isStockPriceChanged(sbStockNameShort, sbSignal):
-                    #         cancelActiveStock() #real active (not temp)
-                    #         delStockActiveTemp(sbStockNameShort)
-                    #         delStockPriceTemp(sbStockNameShort)
                                     
                 if sbSignal == gloSbSignalBuy:
                     if (
@@ -936,12 +937,24 @@ def isMarketHours():
         print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
 
-def isMarketOpen():# if current time is between 9-17:30 AND time is not saturday or Sunday AND it is not a RED day
+def isMarketOpen():
     try:
         if isMarketHours() and isWeekDay() and isNotRedDay():
             return True
         else:
             return False
+    except Exception as e:
+        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
+def sendEmailIfActive():
+    try:
+        tempGloStockStatusList = gloStockStatusList
+        for row in tempGloStockStatusList:
+            if row.get(gloStatus_Key_Active) != gloStatus_Value_ActiveDefault:
+                sbj = row.get(gloStatus_Key_NameShortSb) + ' is active: ' + row.get(gloStatus_Key_Active)
+                body = pformat(row)
+                sendEmail(sbj, body)
     except Exception as e:
         print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
@@ -966,7 +979,7 @@ def resetDaily():
     try:
         # set active temp to empty; setStockStatus()
         resetTempActive()
-
+        sendEmailIfActive()
         # reset error counter
         global glo_errorCounter
         glo_errorCounter = 0
@@ -1128,3 +1141,13 @@ print ('END of script')
 #             return priceStockStr
 #     except Exception as e:
 #             print ("ERROR in", inspect.stack()[0][3], ':', str(e)) 
+                # setStockStatus() # only non-tempActive will pass down here
+
+                    # if isStockActiveLongTime((sbStockNameShort, sbSignal))
+                    # if not isStockActive(sbStockNameShort, sbSignal):
+                    #     delStockActiveTemp(sbStockNameShort)
+                #     elif isStockActive(sbStockNameShort, sbSignal):
+                        # if isStockPriceChanged(sbStockNameShort, sbSignal):
+                    #         cancelActiveStock() #real active (not temp)
+                    #         delStockActiveTemp(sbStockNameShort)
+                    #         delStockPriceTemp(sbStockNameShort)
