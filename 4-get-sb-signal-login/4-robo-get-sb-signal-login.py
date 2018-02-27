@@ -17,15 +17,10 @@ import json
 from pprint import pprint
 from pprint import pformat
 
-# logout between sessions?
-# Validate payloadOrder (and other?)
-# get email upon error
-# possible to change and close script anytime
-# on error: continue or exit?
-# If max held stocks = 5: max is hold when held is max (5) or active + held = 7?
 # Only use stop-loss?
-# What if Internet connection drops?
-# What if URL request fails?
+# What if Internet connection drops
+    # seems to continue after fail
+# Check if script crash
 
 sPathOutput = "/output/"
 sPathInput = "/input/"
@@ -164,7 +159,6 @@ glo_redDays = {
     }
 }
 # --- END Global variables
-
 
 def writeErrorLog (callingFunction, eStr):
     print ('\nSTART', inspect.stack()[0][3])
@@ -538,7 +532,8 @@ def isMaxStockHeldAndActive():
         maxNumberOfStocks = getMaxNumberOfStocks()
         currentNumberOfStocksHeld = getCurrentNumberOfStocksHeld()
         currentNumberOfStocksActiveBuy = getCurrentNumberOfStocksActiveBuy()
-        currentStockHeldAndActive = currentNumberOfStocksHeld + currentNumberOfStocksActiveBuy
+        currentNumberOfStocksActiveSell = getCurrentNumberOfStocksActiveSell()
+        currentStockHeldAndActive = currentNumberOfStocksHeld + currentNumberOfStocksActiveBuy - currentNumberOfStocksActiveSell 
         if  currentStockHeldAndActive >= maxNumberOfStocks:
             return True
         else:
@@ -613,6 +608,18 @@ def getCurrentNumberOfStocksActiveBuy():
         tempGloStockStatusList = gloStockStatusList
         for row in tempGloStockStatusList:
             if row.get(gloStatus_Key_ActiveTemp) == gloStatus_Value_ActiveBuy:
+                counter += 1
+        return counter
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
+def getCurrentNumberOfStocksActiveSell():
+    try:
+        counter = 0
+        tempGloStockStatusList = gloStockStatusList
+        for row in tempGloStockStatusList:
+            if row.get(gloStatus_Key_ActiveTemp) == gloStatus_Value_ActiveSell:
                 counter += 1
         return counter
     except Exception as e:
@@ -989,11 +996,12 @@ def resetDaily():
 
 schedule.every().day.at("20:00").do(resetDaily)
 
-setMaxNumberOfStocks(6)
+setMaxNumberOfStocks(5)
 # Leave empty or remove to use real value
 setAmountAvailableStatic(100)
 initStockStatus()
 setStockStatus()
+isMaxStockHeldAndActive()
 while True:
     schedule.run_pending()
     if isMarketOpen():
