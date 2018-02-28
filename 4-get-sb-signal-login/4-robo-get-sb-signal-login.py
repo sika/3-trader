@@ -95,7 +95,7 @@ gloOpeningTime = datetime.time(9,0)
 gloClosingTime = datetime.time(17,30)
 
 # amount to deal with
-gloCurrentNumberOfStocksHeld = gloMaxNumberOfStocks = None # saftey reason: will not trade if something goes wrong
+gloCurrentNumberOfStocksHeld = gloMaxNumberOfStocks = gloMaxNumberOfActiveAboveMaxHeld = None # saftey reason: will not trade if something goes wrong
 gloAmountAvailable = gloAmountAvailableStatic = None
 
 # glo_dummyCounter = 0
@@ -267,7 +267,7 @@ def setStockStatus():
         # get amount available
         soup = BeautifulSoup(s.get('https://www.nordnet.se/mux/web/depa/mindepa/depaoversikt.html').content, 'html.parser')
         amountAvailableStr = soup.find("td", string="Tillgängligt").next_sibling.next_sibling.get_text().strip(' SEK')
-        setAmountAvailable(int(amountAvailableStr))
+        setAmountAvailable(int(float(amountAvailableStr)))
 
         # reset stock status: held; active; amount held
         resetStockStatus() 
@@ -578,6 +578,18 @@ def setAmountAvailable(amountInt):
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
 
+def updateAmountAvailable(sbSignalType, payloadOrder):
+    print ('\n', inspect.stack()[0][3])
+    try:
+        global gloAmountAvailable
+        if sbSignalType == gloSbSignalBuy:
+            gloAmountAvailable -= int(float(payloadOrder.get(gloOrderNnKeyPrice)) * float(payloadOrder.get(gloOrderNnKeyVolume)))
+        elif sbSignalType == gloSbSignalSell:
+            gloAmountAvailable += int(float(payloadOrder.get(gloOrderNnKeyPrice)) * float(payloadOrder.get(gloOrderNnKeyVolume)))
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
 def getAmountAvailable():
     try:
         amountAvailable = gloAmountAvailable
@@ -643,6 +655,23 @@ def getMaxNumberOfStocks():
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
 
+def setMaxNumberOfActiveAboveMaxHeld(numberOfStocksInt):
+    print ('\n', inspect.stack()[0][3])
+    try:
+        global gloMaxNumberOfActiveAboveMaxHeld
+        gloMaxNumberOfActiveAboveMaxHeld = numberOfStocksInt
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
+def getMaxNumberOfActiveAboveMaxHeld():
+    try:
+        maxNumberOfActiveAboveMaxHeld = gloMaxNumberOfActiveAboveMaxHeld
+        return maxNumberOfActiveAboveMaxHeld
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
 def getNnStockPrice(sbStockNameShort, sbSignalType, s):
     try:
         sellPercentageChange = 0.05
@@ -673,9 +702,12 @@ def getNnStockVolume(orderNnValuePriceStr):
         # get amount available
         amountAvailableInt = getAmountAvailable()
         maxNumberOfStocksInt = getMaxNumberOfStocks()
-        currentNumberOfStocksHeldInt = getCurrentNumberOfStocksHeld()
+        maxNumberOfActiveAboveMaxHeldInt = getMaxNumberOfActiveAboveMaxHeld() # to have loose cash to pay stock if both sell and buy at same time
+        # currentNumberOfStocksHeldInt = getCurrentNumberOfStocksHeld()
+        currentNumberOfTotalHeldAndActive = getCurrentNumberOfStocksHeld() + getCurrentNumberOfStocksActiveBuy() - getCurrentNumberOfStocksActiveSell()
         orderNnValuePriceFloat = float(orderNnValuePriceStr)
-        orderNnValueVolumeStr = str(int(amountAvailableInt / (maxNumberOfStocksInt - currentNumberOfStocksHeldInt) / orderNnValuePriceFloat))
+        # orderNnValueVolumeStr = str(int(amountAvailableInt / (maxNumberOfStocksInt - currentNumberOfStocksHeldInt) / orderNnValuePriceFloat))
+        orderNnValueVolumeStr = str(int(amountAvailableInt / (maxNumberOfStocksInt + maxNumberOfActiveAboveMaxHeldInt - currentNumberOfTotalHeldAndActive) / orderNnValuePriceFloat))
         return orderNnValueVolumeStr
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
@@ -746,6 +778,7 @@ def nordnetPlaceOrder(sbStockNameShort, sbSignalType): #sbSignalType = BUY or SE
             print(sbStockNameShort)
             pprint(payloadOrder)
             setStockActiveTemp(sbStockNameShort, sbSignalType)
+            updateAmountAvailable(sbSignalType, payloadOrder)
             writeOrderStatistics(sbStockNameShort, payloadOrder)
             sendEmail(sbStockNameShort + ':' + sbSignalType, sbStockNameShort + '\n'+ pformat(payloadOrder))
         else:
@@ -871,8 +904,8 @@ def sbGetSignal():
                 # if first placed BUY, then signal change to SELL, need to know true status of that stock (held or active)
                 if sbSignal == gloSbSignalSell and isStockActiveTemp(sbStockNameShort, gloSbSignalBuy):
                     setStockStatus()
-                elif sbSignal == gloSbSignalBuy and isStockActiveTemp(sbStockNameShort, gloSbSignalSell):
-                    setStockStatus()
+                # elif sbSignal == gloSbSignalBuy and isStockActiveTemp(sbStockNameShort, gloSbSignalSell):
+                #     setStockStatus()
                                     
                 if sbSignal == gloSbSignalBuy:
                     if (
@@ -997,6 +1030,7 @@ def resetDaily():
 schedule.every().day.at("20:00").do(resetDaily)
 
 setMaxNumberOfStocks(5)
+setMaxNumberOfActiveAboveMaxHeld(2)
 # Leave empty or remove to use real value
 setAmountAvailableStatic(100)
 initStockStatus()
@@ -1004,6 +1038,7 @@ setStockStatus()
 while True:
     schedule.run_pending()
     if isMarketOpen():
+        print(getTimestampStr())
         sbGetSignal()
         time.sleep(120)
 
