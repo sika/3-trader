@@ -25,6 +25,7 @@ from pprint import pformat
 sPathOutput = "/output/"
 sPathInput = "/input/"
 sPathError = "/errorlog/"
+sPathPidFile = '/pid.txt'
 pathFile = os.path.dirname(os.path.abspath(__file__))
 
 # --- Global variables
@@ -788,7 +789,6 @@ def getPayloadOrderValues(sbStockNameShort, sbSignalType, orderNnValuePrice):
 def sendEmail(sbj, body):
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        sbj = sbj + ' ' + gloEmailRuleFw
         msg = 'Subject: {}\n\n{}'.format(sbj, body)
         smtp = smtplib.SMTP('smtp.gmail.com:587')
         smtp.starttls()
@@ -889,6 +889,17 @@ def shouldCheckForSignal():
             return False
     except Exception as e:
         print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
+def createPidFile():
+    print ('\nSTART', inspect.stack()[0][3])
+    try:
+        pidInt = os.getpid()
+        file_pid = pathFile + sPathPidFile
+        with open(file_pid, "w") as file:
+            file.write(str(pidInt))
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
 
 def resetTempActive():
@@ -1096,16 +1107,16 @@ def sbGetSignal():
 
 schedule.every().day.at("22:00").do(resetDaily)
 
+# for surverying script (in case of crash)
+createPidFile()
 setMaxNumberOfStocks(5)
 setMaxNumberOfActiveAboveMaxHeld(2)
 # Leave empty or remove to use real value
-
 setAmountAvailableStatic(140)
 initStockStatus()
 setStockStatus()
 while True:
     schedule.run_pending()
-    # if isMarketOpenNow():
     if shouldCheckForSignal():
         print(getTimestampStr())
         sbGetSignal()

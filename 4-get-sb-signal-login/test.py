@@ -22,8 +22,8 @@ sPathInput = "/input/"
 sPathError = "/errorlog/"
 pathFile = os.path.dirname(os.path.abspath(__file__))
 
-BP()
-pass
+while True:
+    pass
 
 # -----------------------------------------------------------
 # def getTimestampCustomStr(custom):
