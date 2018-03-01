@@ -38,7 +38,7 @@ def monitorPidNumber(pidNumberInt):
                 if os.getpgid(pidNumberInt):
                     print(pidNumberInt, 'exist!')
                 # time.sleep(300)
-                time.sleep(10)
+                time.sleep(300)
             except OSError:
                 print(pidNumberInt, 'does NOT exist!')
                 sendEmail('script might have CRASHED', '')
