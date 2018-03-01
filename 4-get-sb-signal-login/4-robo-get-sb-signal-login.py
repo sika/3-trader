@@ -91,8 +91,10 @@ gloSbSignalShort = 'SHORT'
 gloEmailRuleFw = '(-)'
 
 # time
-gloOpeningTime = datetime.time(9,0)
-gloClosingTime = datetime.time(17,30)
+glo_marketOpeningTime = datetime.time(9,0)
+glo_marketClosingTime = datetime.time(17,29)
+glo_sbOpeningTime = datetime.time(9,0)
+glo_sbClosingTime = datetime.time(20,30)
 
 # amount to deal with
 gloCurrentNumberOfStocksHeld = gloMaxNumberOfStocks = gloMaxNumberOfActiveAboveMaxHeld = None # saftey reason: will not trade if something goes wrong
@@ -545,6 +547,9 @@ def isMaxStockHeldAndActive():
 def getTimestamp():
     return datetime.datetime.now()
 
+def getTimestampCustom(dayIncrementalInt):
+    return datetime.datetime.strptime()
+
 def getTimestampStr():
     return datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
 
@@ -555,6 +560,9 @@ def getDateToday():
     return datetime.date.today()
 
 def getDateTodayStr():
+    return datetime.date.today().strftime('%Y-%m-%d')
+
+def getDateCustomDayStr(timestamp):
     return datetime.date.today().strftime('%Y-%m-%d')
 
 def getDateTodayCustomStr(custom):
@@ -582,10 +590,17 @@ def updateAmountAvailable(sbSignalType, payloadOrder):
     print ('\n', inspect.stack()[0][3])
     try:
         global gloAmountAvailable
+        global gloAmountAvailableStatic
         if sbSignalType == gloSbSignalBuy:
-            gloAmountAvailable -= int(float(payloadOrder.get(gloOrderNnKeyPrice)) * float(payloadOrder.get(gloOrderNnKeyVolume)))
+            if gloAmountAvailableStatic != None:
+                gloAmountAvailableStatic -= int(float(payloadOrder.get(gloOrderNnKeyPrice)) * float(payloadOrder.get(gloOrderNnKeyVolume)))
+            else:
+                gloAmountAvailable -= int(float(payloadOrder.get(gloOrderNnKeyPrice)) * float(payloadOrder.get(gloOrderNnKeyVolume)))
         elif sbSignalType == gloSbSignalSell:
-            gloAmountAvailable += int(float(payloadOrder.get(gloOrderNnKeyPrice)) * float(payloadOrder.get(gloOrderNnKeyVolume)))
+            if gloAmountAvailableStatic != None:
+                gloAmountAvailableStatic += int(float(payloadOrder.get(gloOrderNnKeyPrice)) * float(payloadOrder.get(gloOrderNnKeyVolume)))
+            else:
+                gloAmountAvailable += int(float(payloadOrder.get(gloOrderNnKeyPrice)) * float(payloadOrder.get(gloOrderNnKeyVolume)))
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
@@ -716,10 +731,25 @@ def getNnStockVolume(orderNnValuePriceStr):
 def getNnStockValidUntil():
     try:
         orderNnStockValidUntil = None
-        if isMarketOpen():
+        if isMarketOpenNow():
             orderNnStockValidUntil = getDateTodayStr()
+        else:
+            noMatch = True
+            day = 1
+            while noMatch:
+                dateTodayStr = getDateTodayStr()
+                timeStr = '10:00' # red day open half day always 9-13
+                timestampToday = datetime.datetime.strptime(dateTodayStr + ' ' + timeStr, '%Y-%m-%d %H:%M')
+                timestampOtherday = timestampToday + datetime.timedelta(day)
+                if isMarketOpenCustom(timestampOtherday):
+                    timestampPosix = time.mktime(timestampOtherday.timetuple())
+                    dateStr = datetime.date.fromtimestamp(timestampPosix).strftime('%Y-%m-%d')
+                    orderNnStockValidUntil = dateStr
+                    noMatch = False
+                else:
+                    day += 1
         return orderNnStockValidUntil
-
+        # if not marketopen, valid until next day open
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
@@ -754,6 +784,139 @@ def getPayloadOrderValues(sbStockNameShort, sbSignalType, orderNnValuePrice):
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))  
+
+def sendEmail(sbj, body):
+    print ('\nSTART', inspect.stack()[0][3])
+    try:
+        sbj = sbj + ' ' + gloEmailRuleFw
+        msg = 'Subject: {}\n\n{}'.format(sbj, body)
+        smtp = smtplib.SMTP('smtp.gmail.com:587')
+        smtp.starttls()
+        credGmailAutotrading = getCredentials(gloCredGmailAutotrading)
+        # form[gloSbLoginFormUser].value = credSb.get('username')
+        smtp.login(credGmailAutotrading.get('username'), credGmailAutotrading.get('pwd'))
+        smtp.sendmail(credGmailAutotrading.get('username'), credGmailAutotrading.get('username'), msg) # 1 from, 2 to
+    except Exception as e:
+        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
+    else:
+        print('END', inspect.stack()[0][3], '\n')
+
+def isWeekDay():
+    try:
+        if 1 <= getTimestamp().isoweekday() <= 5: # mon-fri <-> 1-5
+            return True
+        else:
+            return False
+    except Exception as e:
+        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
+def isNotRedDay():
+    try:
+        for date, time in glo_redDays.items():
+            if time['CLOSE_START'] < getTimestamp() < time['CLOSE_END']:
+                return False # IS red day
+        return True # is NOT red day
+    except Exception as e:
+        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
+def isWeekDayCustom(timestamp):
+    try:
+        if 1 <= timestamp.isoweekday() <= 5: # mon-fri <-> 1-5
+            return True
+        else:
+            return False
+    except Exception as e:
+        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
+def isNotRedDayCustom(timestamp):
+    try:
+        for date, time in glo_redDays.items():
+            if time['CLOSE_START'] < timestamp < time['CLOSE_END']:
+                return False # IS red day
+        return True # is NOT red day
+    except Exception as e:
+        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
+def isMarketHours():
+    try:
+        if glo_marketOpeningTime <= getTimestamp().time() < glo_marketClosingTime:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
+def isSbHours():
+    try:
+        if glo_sbOpeningTime <= getTimestamp().time() < glo_sbClosingTime:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))    
+
+def isMarketOpenNow():
+    try:
+        if isMarketHours() and isWeekDay() and isNotRedDay():
+            return True
+        else:
+            return False
+    except Exception as e:
+        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
+def isMarketOpenCustom(timestamp):
+    try:
+        if isWeekDayCustom(timestamp) and isNotRedDayCustom(timestamp):
+            return True
+        else:
+            return False
+    except Exception as e:
+        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
+def shouldCheckForSignal():
+    try:
+        if isSbHours() and isWeekDay() and isNotRedDay():
+            return True
+        else:
+            return False
+    except Exception as e:
+        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
+def resetTempActive():
+    print ('\nSTART', inspect.stack()[0][3])
+    try:
+        global gloStockStatusList
+        tempGloStockStatusList = gloStockStatusList
+        for row in tempGloStockStatusList:
+            row[gloStatus_Key_ActiveTemp] = gloStatus_Value_ActiveTempDefault
+        gloStockStatusList = tempGloStockStatusList
+        # global glo_dummyCounter
+        # glo_dummyCounter = 0
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))   
+
+def resetDaily():
+    print ('\n', inspect.stack()[0][3])
+    try:
+        # set active temp to empty
+        resetTempActive()
+        setStockStatus()
+        # reset error counter
+        global glo_errorCounter
+        glo_errorCounter = 0
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))   
 
 def nordnetPlaceOrder(sbStockNameShort, sbSignalType): #sbSignalType = BUY or SELL
     print ('\nSTART', inspect.stack()[0][3])
@@ -931,113 +1094,19 @@ def sbGetSignal():
     else:
         print('END', inspect.stack()[0][3], '\n')
 
-def sendEmail(sbj, body):
-    print ('\nSTART', inspect.stack()[0][3])
-    try:
-        sbj = sbj + ' ' + gloEmailRuleFw
-        msg = 'Subject: {}\n\n{}'.format(sbj, body)
-        smtp = smtplib.SMTP('smtp.gmail.com:587')
-        smtp.starttls()
-        credGmailAutotrading = getCredentials(gloCredGmailAutotrading)
-        # form[gloSbLoginFormUser].value = credSb.get('username')
-        smtp.login(credGmailAutotrading.get('username'), credGmailAutotrading.get('pwd'))
-        smtp.sendmail(credGmailAutotrading.get('username'), credGmailAutotrading.get('username'), msg) # 1 from, 2 to
-    except Exception as e:
-        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
-    else:
-        print('END', inspect.stack()[0][3], '\n')
-
-def isWeekDay():
-    try:
-        if 1 <= getTimestamp().isoweekday() <= 5: # mon-fri <-> 1-5
-            return True
-        else:
-            return False
-    except Exception as e:
-        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
-        writeErrorLog(inspect.stack()[0][3], str(e))
-
-def isNotRedDay():
-    try:
-        for date, time in glo_redDays.items():
-            if time['CLOSE_START'] < getTimestamp() < time['CLOSE_END']:
-                return False # IS red day
-        return True # is NOT red day
-    except Exception as e:
-        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
-        writeErrorLog(inspect.stack()[0][3], str(e))
-
-def isMarketHours():
-    try:
-        if gloOpeningTime <= getTimestamp().time() < gloClosingTime:
-            return True
-        else:
-            return False
-    except Exception as e:
-        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
-        writeErrorLog(inspect.stack()[0][3], str(e))
-
-def isMarketOpen():
-    try:
-        if isMarketHours() and isWeekDay() and isNotRedDay():
-            return True
-        else:
-            return False
-    except Exception as e:
-        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
-        writeErrorLog(inspect.stack()[0][3], str(e))
-
-def sendEmailIfActive():
-    try:
-        tempGloStockStatusList = gloStockStatusList
-        for row in tempGloStockStatusList:
-            if row.get(gloStatus_Key_Active) != gloStatus_Value_ActiveDefault:
-                sbj = row.get(gloStatus_Key_NameShortSb) + ' is active: ' + row.get(gloStatus_Key_Active)
-                body = pformat(row)
-                sendEmail(sbj, body)
-    except Exception as e:
-        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
-        writeErrorLog(inspect.stack()[0][3], str(e))
-
-def resetTempActive():
-    print ('\nSTART', inspect.stack()[0][3])
-    try:
-        global gloStockStatusList
-        tempGloStockStatusList = gloStockStatusList
-        for row in tempGloStockStatusList:
-            row[gloStatus_Key_ActiveTemp] = gloStatus_Value_ActiveTempDefault
-        gloStockStatusList = tempGloStockStatusList
-        setStockStatus()
-        # global glo_dummyCounter
-        # glo_dummyCounter = 0
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
-        writeErrorLog(inspect.stack()[0][3], str(e))   
-
-def resetDaily():
-    print ('\n', inspect.stack()[0][3])
-    try:
-        # set active temp to empty; setStockStatus()
-        resetTempActive()
-        sendEmailIfActive()
-        # reset error counter
-        global glo_errorCounter
-        glo_errorCounter = 0
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
-        writeErrorLog(inspect.stack()[0][3], str(e))   
-
-schedule.every().day.at("20:00").do(resetDaily)
+schedule.every().day.at("22:00").do(resetDaily)
 
 setMaxNumberOfStocks(5)
 setMaxNumberOfActiveAboveMaxHeld(2)
 # Leave empty or remove to use real value
-setAmountAvailableStatic(100)
+
+setAmountAvailableStatic(140)
 initStockStatus()
 setStockStatus()
 while True:
     schedule.run_pending()
-    if isMarketOpen():
+    # if isMarketOpenNow():
+    if shouldCheckForSignal():
         print(getTimestampStr())
         sbGetSignal()
         time.sleep(120)
@@ -1193,3 +1262,15 @@ print ('END of script')
                     #         cancelActiveStock() #real active (not temp)
                     #         delStockActiveTemp(sbStockNameShort)
                     #         delStockPriceTemp(sbStockNameShort)
+
+# def sendEmailIfActive():
+#     try:
+#         tempGloStockStatusList = gloStockStatusList
+#         for row in tempGloStockStatusList:
+#             if row.get(gloStatus_Key_Active) != gloStatus_Value_ActiveDefault:
+#                 sbj = row.get(gloStatus_Key_NameShortSb) + ' is active: ' + row.get(gloStatus_Key_Active)
+#                 body = pformat(row)
+#                 sendEmail(sbj, body)
+#     except Exception as e:
+#         print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
+#         writeErrorLog(inspect.stack()[0][3], str(e))
