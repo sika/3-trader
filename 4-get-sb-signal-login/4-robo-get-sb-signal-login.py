@@ -294,6 +294,7 @@ def isConfirmationStatSet(sbStockNameShort, sbSignalConf):
 
 def resetConfStat():
     print ('\n', inspect.stack()[0][3])
+    print(getTimestampStr())
     try:
         global glo_confirmationStatList
         glo_confirmationStatList = []
@@ -976,13 +977,12 @@ def isMarketOpenCustom(timestamp):
     #     writeErrorLog(inspect.stack()[0][3], str(e))
 
 def isLastPriceWithinBuyLevel(sbAveragePriceStr, sbLastPriceStr):
-    print ('\nSTART', inspect.stack()[0][3])
     try:
         percentageChangeLimit = 0.5
         decimalChangeLimit = (percentageChangeLimit/100) + 1
         sbLastPriceFloat = float(sbLastPriceStr)
         sbAveragePriceFloat = float(sbAveragePriceStr)
-        if sbLastPriceFloat < sbAveragePrice * decimalChangeLimit:
+        if sbLastPriceFloat < sbAveragePriceFloat * decimalChangeLimit:
             return True
         else:
             return False
@@ -1030,6 +1030,7 @@ def resetTempActive():
 
 def resetDaily():
     print ('\n', inspect.stack()[0][3])
+    print(getTimestampStr())
     try:
         # set active temp to empty
         resetTempActive()
@@ -1168,6 +1169,7 @@ def sbLogin():
 
 def sbGetSignal_afterMarketHours():
     print ('\nSTART', inspect.stack()[0][3])
+    print(getTimestampStr())
     try:
         # Login in to SB, return browser object
         browser = sbLogin()
@@ -1221,6 +1223,7 @@ def sbGetSignal_afterMarketHours():
 
 def sbGetSignal():
     print ('\nSTART', inspect.stack()[0][3])
+    print(getTimestampStr())
     try:
         # Login in to SB, return browser object
         browser = sbLogin()
@@ -1290,9 +1293,9 @@ def sbGetSignal():
     else:
         print('END', inspect.stack()[0][3], '\n')    
 
-# remove activetemp (active intraday orders not gone through are removed after closing)
-schedule.every().day.at("19:00").do(resetDaily)
-schedule.every().day.at("20:00").do(sbGetSignal_afterMarketHours)
+schedule.every().day.at("19:00").do(resetDaily) # remove activetemp (active intraday orders not gone through are removed after closing)
+schedule.every().day.at("19:45").do(sbGetSignal_afterMarketHours)
+schedule.every().day.at("20:00").do(sbGetSignal_afterMarketHours) # repeat in case failure at first
 schedule.every().day.at("22:00").do(resetDaily)
 schedule.every().day.at("22:10").do(resetConfStat)
 
