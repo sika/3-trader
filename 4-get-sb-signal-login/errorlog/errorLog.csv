@@ -8,3 +8,9 @@ DATE;TIME;DAY;ERROR_COUNTER;E_MSG;CALLING_FUNCTION
 2018-02-27;15:40;Tuesday;1;;isMaxStockHeldAndActive
 2018-02-27;15:49;Tuesday;1;HTTPSConnectionPool(host='www.swedishbulls.com', port=443): Max retries exceeded with url: /Signin.aspx?lang=en (Caused by NewConnectionError('<urllib3.connection.VerifiedHTTPSConnection object at 0x7f3d1dfdbb70>: Failed to establish a new connection: [Errno -3] Temporary failure in name resolution',));sbLogin
 2018-02-27;15:49;Tuesday;2;'NoneType' object has no attribute 'find';sbGetSignal
+2018-03-05;14:37;Monday;1;;sbGetSignal_afterMarketHours
+2018-03-05;16:26;Monday;1;;isPriceWithinBuyLevel
+2018-03-05;16:26;Monday;2;;isPriceWithinBuyLevel
+2018-03-05;17:08;Monday;1;;sbGetSignal
+2018-03-05;17:22;Monday;1;;sbGetSignal
+2018-03-06;11:38;Tuesday;1;;isLastPriceWithinBenchmark

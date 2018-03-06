@@ -17,10 +17,29 @@ import json
 from pprint import pprint
 from pprint import pformat
 
+# setStockStatus before afterMarketHours check and reset tempactive?
+# Static price update at setStockStatus?
+# Creat statistics csv:
+    # - 
+
+# market is open, SELL:
+    # - buy at green confirmation level (4/4 confirm)
+    # - buy if latest price is within 0.5% of benchmark price
+
+# market is CLOSED (+20:30), SELL:
+    # - buy if BUY signal given:
+    # - buy if latest price is within 0.5% of "Avg. Price" (the recommended buy level for last close)
+
+# market is open, SELL:
+    # - sell at orange confirmation level (2/4 confirm)
+    # - sell at latest price - 5%
+
+# market is CLOSED, SELL:
+    # - sell if SELL signal given
+    # - sell at latest price - 5%
+
+
 # Only use stop-loss?
-# What if Internet connection drops
-    # seems to continue after fail
-# Check if script crash
 
 sPathOutput = "/output/"
 sPathInput = "/input/"
@@ -87,6 +106,10 @@ gloOrderNnValueSmartOrder = '0'
 gloSbSignalBuy = 'BUY'
 gloSbSignalSell = 'SELL'
 gloSbSignalShort = 'SHORT'
+glo_sbArrowUp_green = 'UPGreen'
+glo_sbArrowDown_green = 'DOWNGreen'
+glo_sbArrowDown_yellow = 'DOWNYellow'
+glo_sbArrowDown_orange = 'DOWNOrange'
 
 # email
 gloEmailRuleFw = '(-)'
@@ -94,8 +117,8 @@ gloEmailRuleFw = '(-)'
 # time
 glo_marketOpeningTime = datetime.time(9,0)
 glo_marketClosingTime = datetime.time(17,29)
-glo_sbOpeningTime = datetime.time(9,0)
-glo_sbClosingTime = datetime.time(20,30)
+glo_afterMarketHoursOpen = datetime.time(20,30)
+glo_afterMarketHoursClosed = datetime.time(21,00)
 
 # amount to deal with
 gloCurrentNumberOfStocksHeld = gloMaxNumberOfStocks = gloMaxNumberOfActiveAboveMaxHeld = None # saftey reason: will not trade if something goes wrong
@@ -690,7 +713,8 @@ def getMaxNumberOfActiveAboveMaxHeld():
 
 def getNnStockPrice(sbStockNameShort, sbSignalType, s):
     try:
-        sellPercentageChange = 0.05
+        sellPercentageChange = 5
+        sellDecimalChange = sellPercentageChange/100
         urlNnStock = None
         for row in gloStockStatusList:
             if row.get(gloStatus_Key_NameShortSb) == sbStockNameShort:
@@ -705,7 +729,7 @@ def getNnStockPrice(sbStockNameShort, sbSignalType, s):
         #get number of decimals to match stock (should be dynamic since number can be either 2 or 3)
         dec = str(len(priceStockStr.split('.')[1])) 
         if sbSignalType == gloSbSignalSell:
-            priceStockStr = format(float(priceStockStr) - sellPercentageChange*float(priceStockStr), '.' + (dec) + 'f') #lower market price with 0.2%
+            priceStockStr = format(float(priceStockStr) - sellDecimalChange*float(priceStockStr), '.' + (dec) + 'f') #lower market price with x%
             return priceStockStr
         elif sbSignalType == gloSbSignalBuy:
             return priceStockStr
@@ -853,7 +877,7 @@ def isMarketHours():
 
 def isSbHours():
     try:
-        if glo_sbOpeningTime <= getTimestamp().time() < glo_sbClosingTime:
+        if glo_afterMarketHoursOpen <= getTimestamp().time() < glo_afterMarketHoursClosed:
             return True
         else:
             return False
@@ -881,15 +905,43 @@ def isMarketOpenCustom(timestamp):
         print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
 
-def shouldCheckForSignal():
+# def isAfterMarketHours():
+    # try:
+    #     if isSbHours() and isWeekDay() and isNotRedDay():
+    #         return True
+    #     else:
+    #         return False
+    # except Exception as e:
+    #     print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
+    #     writeErrorLog(inspect.stack()[0][3], str(e))
+
+def isLastPriceWithinBuyLevel(sbAveragePriceStr, sbLastPriceStr):
     try:
-        if isSbHours() and isWeekDay() and isNotRedDay():
+        percentageChangeLimit = 0.5
+        decimalChangeLimit = (percentageChangeLimit/100) + 1
+        sbLastPriceFloat = float(sbLastPriceStr)
+        sbAveragePriceFloat = float(sbAveragePriceStr)
+        if sbLastPriceFloat < sbAveragePrice * decimalChangeLimit:
             return True
         else:
             return False
     except Exception as e:
-        print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
-        writeErrorLog(inspect.stack()[0][3], str(e))
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))   
+
+def isLastPriceWithinBenchmark(sbBenchmarkPrice, sbLastPrice):
+    try:
+        percentageChangeLimit = 0.5
+        decimalChangeLimit = (percentageChangeLimit/100) + 1
+        sbLastPriceFloat = float(sbLastPrice)
+        sbBenchmarkPriceFloat = float(sbBenchmarkPrice)
+        if sbLastPriceFloat < sbBenchmarkPriceFloat * decimalChangeLimit:
+            return True
+        else: 
+            return False
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))    
 
 def createPidFile():
     print ('\nSTART', inspect.stack()[0][3])
@@ -910,8 +962,6 @@ def resetTempActive():
         for row in tempGloStockStatusList:
             row[gloStatus_Key_ActiveTemp] = gloStatus_Value_ActiveTempDefault
         gloStockStatusList = tempGloStockStatusList
-        # global glo_dummyCounter
-        # glo_dummyCounter = 0
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))   
@@ -1054,9 +1104,8 @@ def sbLogin():
         print('END', inspect.stack()[0][3], '\n')
         return (browser)
 
-def sbGetSignal():
+def sbGetSignal_afterMarketHours():
     print ('\nSTART', inspect.stack()[0][3])
-    # Check SB for stock and signals
     try:
         # Login in to SB, return browser object
         browser = sbLogin()
@@ -1070,22 +1119,19 @@ def sbGetSignal():
             for row in rowWatchlist:
                 sbStockNameShort = row.td.a.get_text()
                 sbSignal = row.find_all('td')[7].get_text()
+                sbAveragePrice = row.find_all('td')[6].get_text()
+                sbLastPrice = row.find_all('td')[12].get_text()
                 if sbSignal == gloSbSignalShort: # SELL or SHORT = SELL
                     sbSignal = gloSbSignalSell
                 if isStockActiveTemp(sbStockNameShort, sbSignal):
                     print('STOCK', sbStockNameShort, 'already has ACTIVE_TEMP signal', sbSignal)
                     continue
-                # if first placed BUY, then signal change to SELL, need to know true status of that stock (held or active)
-                if sbSignal == gloSbSignalSell and isStockActiveTemp(sbStockNameShort, gloSbSignalBuy):
-                    setStockStatus()
-                # elif sbSignal == gloSbSignalBuy and isStockActiveTemp(sbStockNameShort, gloSbSignalSell):
-                #     setStockStatus()
-                                    
                 if sbSignal == gloSbSignalBuy:
                     if (
                         not isStockHeld(sbStockNameShort) and not 
                         isStockActive(sbStockNameShort, gloSbSignalBuy) and not 
-                        isMaxStockHeldAndActive()
+                        isMaxStockHeldAndActive() and 
+                        isLastPriceWithinBuyLevel(sbAveragePrice, sbLastPrice)
                         ):
                         print ('found', sbStockNameShort, gloSbSignalBuy)
                         # pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
@@ -1105,6 +1151,66 @@ def sbGetSignal():
     else:
         print('END', inspect.stack()[0][3], '\n')
 
+def sbGetSignal():
+    print ('\nSTART', inspect.stack()[0][3])
+    try:
+        # Login in to SB, return browser object
+        browser = sbLogin()
+
+        # Find and go to Watchlist
+        link = browser.find('a', href=re.compile('Watchlist')) # find Watchlist link
+        link = browser.follow_link(link)
+        # Find stock and signal
+        rowWatchlist = browser.find_all('tr', id=re.compile('MainContent_SignalListGrid1_DXDataRow')) #find all <tr> in Watchlist
+        if rowWatchlist is not None:
+            for row in rowWatchlist:
+                sbStockNameShort = row.td.a.get_text()
+                sbLastPrice = row.find_all('td')[12].get_text()
+                sbBenchmarkPrice = row.find_all('td')[8].get_text()
+                # sbSignal = row.find_all('td')[10].get_text() # arrow up or down
+                sbSignal = row.find_all('td')[10].img['src'] # ex "../img/DOWNRed.png"
+                sbArrowSignal = sbSignal # for stat use
+                # find substring match (-1 returned if no match)
+                if (
+                sbSignal.find(glo_sbArrowDown_green) != -1 or 
+                sbSignal.find(glo_sbArrowDown_yellow) != -1 or 
+                sbSignal.find(glo_sbArrowDown_orange) != -1 
+                    ):
+                    sbSignal = gloSbSignalSell
+                elif sbSignal.find(glo_sbArrowUp_green) != -1:
+                    sbSignal = gloSbSignalBuy
+                if isStockActiveTemp(sbStockNameShort, sbSignal):
+                    print('STOCK', sbStockNameShort, 'already has ACTIVE_TEMP signal', sbSignal)
+                    continue
+                if sbSignal == gloSbSignalBuy:
+                    if (
+                        not isStockHeld(sbStockNameShort) and not 
+                        isStockActive(sbStockNameShort, gloSbSignalBuy) and not 
+                        isMaxStockHeldAndActive() and 
+                        isLastPriceWithinBenchmark(sbBenchmarkPrice, sbLastPrice)
+                        # isLastPriceWithinBuyLevel(sbStockNameShort, float(sbBenchmarkPrice))
+                        ):
+                        print ('found', sbStockNameShort, gloSbSignalBuy)
+                        # pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
+                        nordnetPlaceOrder(sbStockNameShort, sbSignal)
+
+                elif sbSignal == gloSbSignalSell:
+                    if (
+                        isStockHeld(sbStockNameShort) and not 
+                        isStockActive(sbStockNameShort, sbSignal)
+                        ):
+                        print ('found', sbStockNameShort, gloSbSignalSell)
+                        # pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
+                        nordnetPlaceOrder(sbStockNameShort, sbSignal)
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+    else:
+        print('END', inspect.stack()[0][3], '\n')    
+
+# remove activetemp (active intraday orders not gone through are removed after closing)
+schedule.every().day.at("19:00").do(resetDaily)
+schedule.every().day.at("20:00").do(sbGetSignal_afterMarketHours)
 schedule.every().day.at("22:00").do(resetDaily)
 
 # for surverying script (in case of crash)
@@ -1115,9 +1221,12 @@ setMaxNumberOfActiveAboveMaxHeld(2)
 setAmountAvailableStatic(140)
 initStockStatus()
 setStockStatus()
+# sbGetSignal()
+# sbGetSignal_afterMarketHours()
+
 while True:
     schedule.run_pending()
-    if shouldCheckForSignal():
+    if isMarketOpenNow():
         print(getTimestampStr())
         sbGetSignal()
         time.sleep(120)
