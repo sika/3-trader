@@ -14,3 +14,18 @@ DATE;TIME;DAY;ERROR_COUNTER;E_MSG;CALLING_FUNCTION
 2018-03-05;17:08;Monday;1;;sbGetSignal
 2018-03-05;17:22;Monday;1;;sbGetSignal
 2018-03-06;11:38;Tuesday;1;;isLastPriceWithinBenchmark
+2018-03-06;15:08;Tuesday;1;;writeConfirmationStatistics
+2018-03-06;15:08;Tuesday;2;name 'stat_key_nameShortSb' is not defined;isConfirmationStatSet
+2018-03-06;15:08;Tuesday;3;;writeConfirmationStatistics
+2018-03-06;15:08;Tuesday;4;name 'stat_key_nameShortSb' is not defined;isConfirmationStatSet
+2018-03-06;15:08;Tuesday;5;;writeConfirmationStatistics
+2018-03-06;15:39;Tuesday;1;name 'counter' is not defined;writeConfirmationStatistics
+2018-03-06;15:39;Tuesday;2;name 'counter' is not defined;writeConfirmationStatistics
+2018-03-06;15:39;Tuesday;3;name 'counter' is not defined;writeConfirmationStatistics
+2018-03-06;15:39;Tuesday;4;name 'counter' is not defined;writeConfirmationStatistics
+2018-03-06;15:39;Tuesday;5;name 'counter' is not defined;writeConfirmationStatistics
+2018-03-06;15:39;Tuesday;6;name 'counter' is not defined;writeConfirmationStatistics
+2018-03-06;15:39;Tuesday;7;name 'counter' is not defined;writeConfirmationStatistics
+2018-03-06;15:39;Tuesday;8;name 'counter' is not defined;writeConfirmationStatistics
+2018-03-06;15:39;Tuesday;9;name 'counter' is not defined;writeConfirmationStatistics
+2018-03-06;15:39;Tuesday;10;name 'counter' is not defined;writeConfirmationStatistics
