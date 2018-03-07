@@ -237,37 +237,37 @@ def writeConfirmationStatistics(sbStockNameShort, sbSignalType, sbSignalConf, sb
     try:
         file_confStat = None
         conf_counter = 0
-        while conf_counter < 2: #create two files in case total file overwritten at git pull
-            if conf_counter == 0:
-                file_confStat = pathFile + sPathOutput + 'confirmationStatistics.csv'
-            elif conf_counter == 1:
-                file_confStat = pathFile + sPathOutput + 'confirmationStatistics '+ getDateTodayStr() +'.csv'
-            file_exists = os.path.isfile(file_confStat)
-            with open (file_confStat, 'a') as csvFile:
-                fieldnames = [glo_stat_key_date, 
-                glo_stat_key_time, 
-                glo_stat_key_day, 
-                glo_stat_key_nameShortSb, 
-                glo_stat_key_signal, 
-                glo_stat_key_confirmation,
-                glo_stat_key_priceLast,
-                glo_stat_key_priceLevel,
-                glo_stat_key_priceDifference]
-                writer = csv.DictWriter(csvFile, fieldnames=fieldnames, delimiter = ';')
-                if not file_exists:
-                    writer.writeheader()
-                statDict = {glo_stat_key_date: getDateTodayStr(), 
-                    glo_stat_key_time: getTimestampCustomStr("%H:%M"), 
-                    glo_stat_key_day: getDateTodayCustomStr('%A'), 
-                    glo_stat_key_nameShortSb: sbStockNameShort,
-                    glo_stat_key_signal: sbSignalType, 
-                    glo_stat_key_confirmation: sbSignalConf,
-                    glo_stat_key_priceLast: sbLastPrice,
-                    glo_stat_key_priceLevel: sbPriceLevel,
-                    glo_stat_key_priceDifference: str(round(float(sbLastPrice)/float(sbPriceLevel), 3))}
-                setStatConfirmation(statDict)
-                writer.writerow(statDict)
-                conf_counter += 1
+        # while conf_counter < 2: #create two files in case total file overwritten at git pull
+            # if conf_counter == 0:
+        file_confStat = pathFile + sPathOutput + 'confirmationStatistics.csv'
+            # elif conf_counter == 1:
+                # file_confStat = pathFile + sPathOutput + 'confirmationStatistics '+ getDateTodayStr() +'.csv'
+        file_exists = os.path.isfile(file_confStat)
+        with open (file_confStat, 'a') as csvFile:
+            fieldnames = [glo_stat_key_date, 
+            glo_stat_key_time, 
+            glo_stat_key_day, 
+            glo_stat_key_nameShortSb, 
+            glo_stat_key_signal, 
+            glo_stat_key_confirmation,
+            glo_stat_key_priceLast,
+            glo_stat_key_priceLevel,
+            glo_stat_key_priceDifference]
+            writer = csv.DictWriter(csvFile, fieldnames=fieldnames, delimiter = ';')
+            if not file_exists:
+                writer.writeheader()
+            statDict = {glo_stat_key_date: getDateTodayStr(), 
+                glo_stat_key_time: getTimestampCustomStr("%H:%M"), 
+                glo_stat_key_day: getDateTodayCustomStr('%A'), 
+                glo_stat_key_nameShortSb: sbStockNameShort,
+                glo_stat_key_signal: sbSignalType, 
+                glo_stat_key_confirmation: sbSignalConf,
+                glo_stat_key_priceLast: sbLastPrice,
+                glo_stat_key_priceLevel: sbPriceLevel,
+                glo_stat_key_priceDifference: str(round(float(sbLastPrice)/float(sbPriceLevel), 3))}
+            setStatConfirmation(statDict)
+            writer.writerow(statDict)
+            conf_counter += 1
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))   
@@ -285,7 +285,7 @@ def isConfirmationStatSet(sbStockNameShort, sbSignalConf):
         global glo_confirmationStatList
         temp_confirmationStatList = glo_confirmationStatList
         for item in temp_confirmationStatList:
-            if item.get(glo_stat_key_nameShortSb) == sbStockNameShort and item.get(glo_stat_key_confirmation):
+            if item.get(glo_stat_key_nameShortSb) == sbStockNameShort and item.get(glo_stat_key_confirmation) == sbSignalConf:
                 return True
         return False
     except Exception as e:
@@ -1238,7 +1238,6 @@ def sbGetSignal():
                 sbStockNameShort = row.td.a.get_text()
                 sbLastPrice = row.find_all('td')[12].get_text()
                 sbBenchmarkPrice = row.find_all('td')[8].get_text()
-                # sbSignal = row.find_all('td')[10].get_text() # arrow up or down
                 sbSignal = row.find_all('td')[10].img['src'] # ex "../img/DOWNRed.png"
                 sbSignalConf = sbSignal[7:-4] # remove first 7 and last 4 chars (for stat use) -> ex: "DOWNRed"
 
@@ -1313,7 +1312,6 @@ setStockStatus()
 while True:
     schedule.run_pending()
     if isMarketOpenNow():
-        print(getTimestampStr())
         sbGetSignal()
         time.sleep(120)
 
