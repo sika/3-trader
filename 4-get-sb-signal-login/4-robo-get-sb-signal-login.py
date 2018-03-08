@@ -264,7 +264,7 @@ def writeConfirmationStatistics(sbStockNameShort, sbSignalType, sbSignalConf, sb
                 glo_stat_key_confirmation: sbSignalConf,
                 glo_stat_key_priceLast: sbLastPrice,
                 glo_stat_key_priceLevel: sbPriceLevel,
-                glo_stat_key_priceDifference: str(round(float(sbLastPrice)/float(sbPriceLevel), 3))}
+                glo_stat_key_priceDifference: str(round(100*(float(sbLastPrice)/float(sbPriceLevel)), 2))}
             setStatConfirmation(statDict)
             writer.writerow(statDict)
             conf_counter += 1
