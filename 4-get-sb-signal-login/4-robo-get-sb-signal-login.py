@@ -264,7 +264,7 @@ def writeConfirmationStatistics(sbStockNameShort, sbSignalType, sbSignalConf, sb
                 glo_stat_key_confirmation: sbSignalConf,
                 glo_stat_key_priceLast: sbLastPrice,
                 glo_stat_key_priceLevel: sbPriceLevel,
-                glo_stat_key_priceDifference: str(round(100*(float(sbLastPrice)/float(sbPriceLevel)), 2))}
+                glo_stat_key_priceDifference: str(round(float(sbLastPrice)/float(sbPriceLevel), 3))}
             setStatConfirmation(statDict)
             writer.writerow(statDict)
             conf_counter += 1
@@ -990,13 +990,18 @@ def isLastPriceWithinBuyLevel(sbAveragePriceStr, sbLastPriceStr):
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))   
 
-def isLastPriceWithinBenchmark(sbBenchmarkPrice, sbLastPrice):
+def isLastPriceWithinBenchmark(sbBenchmarkPriceStr, sbLastPriceStr, sbStockNameShort):
     print ('\nSTART', inspect.stack()[0][3])
     try:
+        print(sbStockNameShort)
         percentageChangeLimit = 0.5
         decimalChangeLimit = (percentageChangeLimit/100) + 1
-        sbLastPriceFloat = float(sbLastPrice)
-        sbBenchmarkPriceFloat = float(sbBenchmarkPrice)
+        sbLastPriceFloat = float(sbLastPriceStr)
+        sbBenchmarkPriceFloat = float(sbBenchmarkPriceStr)
+        print('sbBenchmarkPriceStr:', sbBenchmarkPriceStr)
+        print('sbBenchmarkPriceFloat:', sbBenchmarkPriceFloat)
+        print('sbLastPriceStr:', sbLastPriceStr)
+        print('sbLastPriceFloat:', sbLastPriceFloat)
         if sbLastPriceFloat < sbBenchmarkPriceFloat * decimalChangeLimit:
             return True
         else: 
@@ -1077,6 +1082,7 @@ def nordnetPlaceOrder(sbStockNameShort, sbSignalType): #sbSignalType = BUY or SE
             'reason': r.reason,
             'url': r.url
             }
+            sendEmail(inspect.stack()[0][3], 'FAILED', sbStockNameShort + ':' + sbSignalType, sbStockNameShort + '\n'+ pformat(payloadOrder))
             writeErrorLog(inspect.stack()[0][3], pformat(responseDict))
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
@@ -1271,7 +1277,7 @@ def sbGetSignal():
                         not isStockHeld(sbStockNameShort) and not 
                         isStockActive(sbStockNameShort, gloSbSignalBuy) and not 
                         isMaxStockHeldAndActive() and 
-                        isLastPriceWithinBenchmark(sbBenchmarkPrice, sbLastPrice)
+                        isLastPriceWithinBenchmark(sbBenchmarkPrice, sbLastPrice, sbStockNameShort)
                         # isLastPriceWithinBuyLevel(sbStockNameShort, float(sbBenchmarkPrice))
                         ):
                         print ('found', sbStockNameShort, gloSbSignalBuy)
