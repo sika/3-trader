@@ -242,6 +242,7 @@ def getStocksFromNn(temp_glo_stockInfo_list):
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))        
 
 temp_glo_stockInfo_list = getStockList()
+
 # temp_glo_stockInfo_list = getStocksFromSb(temp_glo_stockInfo_list)
 temp_glo_stockInfo_list = getStocksFromNn(temp_glo_stockInfo_list)
 writeStockList(temp_glo_stockInfo_list)
