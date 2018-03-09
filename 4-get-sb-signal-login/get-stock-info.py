@@ -61,6 +61,7 @@ def setStockList(rowDict):
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))  
 
 def getStocksFromSb(temp_glo_stockInfo_list):
+    print ('\nSTART', inspect.stack()[0][3])
     try:
         counter = 2
         with requests.Session() as s:
@@ -177,6 +178,7 @@ def updateStockList(dict, sbNameshort):
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))      
 
 def writeStockList(temp_glo_stockInfo_list):
+    print ('\nSTART', inspect.stack()[0][3])
     try:
         file_confStat = pathFile + sPathOutput + glo_stockInfo_output_noFileEnd_str + ' ' + getDateTodayStr() + '.csv'
         file_exists = os.path.isfile(file_confStat)
@@ -209,10 +211,39 @@ def writeStockList(temp_glo_stockInfo_list):
                     glo_stockInfoColName_url: row.get(glo_stockInfoColName_url)}
                 writer.writerow(statDict)
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))      
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+
+def getStocksFromNn(temp_glo_stockInfo_list):
+    print ('\nSTART', inspect.stack()[0][3])
+    try:
+        with requests.Session() as s:
+            for row in temp_glo_stockInfo_list:
+                sbNameshort = row.get(glo_stockInfoColName_sbNameshort)
+                sbNameshortSplit = sbNameshort.split('.')
+                sbNameshortSplit = sbNameshortSplit[0]
+                sbName = row.get(glo_stockInfoColName_sbName)
+                sbNameUrlName = sbName.replace(' ', '%20')
+                urlNn1 = 'https://www.nordnet.se/search/#query:'
+                urlNn2 = '/type:instrument'
+                urlNnSearch = urlNn1 + sbNameUrlName + urlNn2
+                r = s.get(urlNnSearch)
+                if r.status_code != 200:
+                    print('something when wrong in URL request:', r.status_code)
+                    print('URL:', urlNnSearch)
+                BP()
+                soup = BeautifulSoup(r.content, 'html.parser')
+                # add:
+                # add to new dict
+                # updateStockList(months_dict, sbNameshort)
+                # counter += 1
+        # temp_glo_stockInfo_list = glo_stockInfo_list
+        # return temp_glo_stockInfo_list
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))        
 
 temp_glo_stockInfo_list = getStockList()
-temp_glo_stockInfo_list = getStocksFromSb(temp_glo_stockInfo_list)
+# temp_glo_stockInfo_list = getStocksFromSb(temp_glo_stockInfo_list)
+temp_glo_stockInfo_list = getStocksFromNn(temp_glo_stockInfo_list)
 writeStockList(temp_glo_stockInfo_list)
 
 # Goal:
