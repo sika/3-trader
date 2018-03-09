@@ -93,6 +93,22 @@ glo_sbArrowDown_green = 'DOWNGreen'
 glo_sbArrowDown_yellow = 'DOWNYellow'
 glo_sbArrowDown_orange = 'DOWNOrange'
 glo_sbArrowDown_red = 'DOWNRed'
+glo_sb_arrow_total_list = [
+    glo_sbArrowUp_green,
+    glo_sbArrowUp_yellow,
+    glo_sbArrowUp_orange,
+    glo_sbArrowUp_red,
+    glo_sbArrowDown_green,
+    glo_sbArrowDown_yellow,
+    glo_sbArrowDown_orange,
+    glo_sbArrowDown_red
+]
+glo_sb_arrow_confirmedBuyOrSell_list = [
+    glo_sbArrowUp_green,
+    glo_sbArrowDown_green,
+    glo_sbArrowDown_yellow,
+    glo_sbArrowDown_orange
+]
 
 # email
 gloEmailRuleFw = '(-)'
@@ -108,7 +124,8 @@ gloCurrentNumberOfStocksHeld = gloMaxNumberOfStocks = gloMaxNumberOfActiveAboveM
 gloAmountAvailable = gloAmountAvailableStatic = None
 
 # statistics
-glo_confirmationStatList = []
+# glo_confirmationStatList = []
+glo_confStat_fileName_str = 'confirmationStatistics.csv'
 glo_stat_key_date = 'DATE'
 glo_stat_key_time = 'TIME'
 glo_stat_key_day = 'DAY'
@@ -118,6 +135,7 @@ glo_stat_key_confirmation = 'CONFIRMATION'
 glo_stat_key_priceLast = 'PRICE_LAST'
 glo_stat_key_priceLevel = 'PRICE_LEVEL'
 glo_stat_key_priceDifference = 'LAST_LEVEL_DIFFERENCE'
+
 # error
 glo_counter_error = 0
 
@@ -236,12 +254,7 @@ def writeOrderStatistics(sbStockNameShort, payloadOrder):
 def writeConfirmationStatistics(sbStockNameShort, sbSignalType, sbSignalConf, sbLastPrice, sbPriceLevel):
     try:
         file_confStat = None
-        conf_counter = 0
-        # while conf_counter < 2: #create two files in case total file overwritten at git pull
-            # if conf_counter == 0:
-        file_confStat = pathFile + sPathOutput + 'confirmationStatistics.csv'
-            # elif conf_counter == 1:
-                # file_confStat = pathFile + sPathOutput + 'confirmationStatistics '+ getDateTodayStr() +'.csv'
+        file_confStat = pathFile + sPathOutput + glo_confStat_fileName_str
         file_exists = os.path.isfile(file_confStat)
         with open (file_confStat, 'a') as csvFile:
             fieldnames = [glo_stat_key_date, 
@@ -264,43 +277,30 @@ def writeConfirmationStatistics(sbStockNameShort, sbSignalType, sbSignalConf, sb
                 glo_stat_key_confirmation: sbSignalConf,
                 glo_stat_key_priceLast: sbLastPrice,
                 glo_stat_key_priceLevel: sbPriceLevel,
-                glo_stat_key_priceDifference: str(round(float(sbLastPrice)/float(sbPriceLevel), 3))}
-            setStatConfirmation(statDict)
+                glo_stat_key_priceDifference: str(round(100*(float(sbLastPrice)/float(sbPriceLevel)), 3))}
             writer.writerow(statDict)
-            conf_counter += 1
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))   
 
-def setStatConfirmation(statDict):
-    try:
-        global glo_confirmationStatList
-        glo_confirmationStatList.append(statDict)
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
-        writeErrorLog(inspect.stack()[0][3], str(e))       
-
 def isConfirmationStatSet(sbStockNameShort, sbSignalConf):
     try:
-        global glo_confirmationStatList
-        temp_confirmationStatList = glo_confirmationStatList
-        for item in temp_confirmationStatList:
-            if item.get(glo_stat_key_nameShortSb) == sbStockNameShort and item.get(glo_stat_key_confirmation) == sbSignalConf:
-                return True
-        return False
+        file_confStat = None
+        file_confStat = pathFile + sPathOutput + glo_confStat_fileName_str
+        file_exists = os.path.isfile(file_confStat)
+        with open (file_confStat) as csvFile:
+            rows = csv.DictReader(csvFile, delimiter=';')
+            for row in rows:
+                if (
+                    row.get(glo_stat_key_nameShortSb) == sbStockNameShort and 
+                    row.get(glo_stat_key_confirmation) == sbSignalConf and
+                    row.get(glo_stat_key_date) == getDateTodayStr()
+                    ):
+                    return True
+            return False
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
-        writeErrorLog(inspect.stack()[0][3], str(e)) 
-
-def resetConfStat():
-    print ('\n', inspect.stack()[0][3])
-    print(getTimestampStr())
-    try:
-        global glo_confirmationStatList
-        glo_confirmationStatList = []
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
-        writeErrorLog(inspect.stack()[0][3], str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))  
 
 def getCredentials(domain):
     try:
@@ -976,39 +976,25 @@ def isMarketOpenCustom(timestamp):
     #     print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
     #     writeErrorLog(inspect.stack()[0][3], str(e))
 
-def isLastPriceWithinBuyLevel(sbAveragePriceStr, sbLastPriceStr):
+def isLastPriceWithinBuyLevel(sbPriceLevelStr, sbLastPriceStr, sbStockNameShort):
     try:
+        print(sbStockNameShort)
         percentageChangeLimit = 0.5
         decimalChangeLimit = (percentageChangeLimit/100) + 1
         sbLastPriceFloat = float(sbLastPriceStr)
-        sbAveragePriceFloat = float(sbAveragePriceStr)
-        if sbLastPriceFloat < sbAveragePriceFloat * decimalChangeLimit:
+        sbPriceLevelFloat = float(sbPriceLevelStr)
+        print('sbPriceLevelStr:', sbPriceLevelStr)
+        print('sbPriceLevelFloat:', sbPriceLevelFloat)
+        print('sbLastPriceStr:', sbLastPriceStr)
+        print('sbLastPriceFloat:', sbLastPriceFloat)
+        print('sbPriceLevelFloat * decimalChangeLimit (if sbLastPriceFloat is less -> True):', sbPriceLevelFloat * decimalChangeLimit)
+        if sbLastPriceFloat < sbPriceLevelFloat * decimalChangeLimit:
             return True
         else:
             return False
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))   
-
-def isLastPriceWithinBenchmark(sbBenchmarkPriceStr, sbLastPriceStr, sbStockNameShort):
-    print ('\nSTART', inspect.stack()[0][3])
-    try:
-        print(sbStockNameShort)
-        percentageChangeLimit = 0.5
-        decimalChangeLimit = (percentageChangeLimit/100) + 1
-        sbLastPriceFloat = float(sbLastPriceStr)
-        sbBenchmarkPriceFloat = float(sbBenchmarkPriceStr)
-        print('sbBenchmarkPriceStr:', sbBenchmarkPriceStr)
-        print('sbBenchmarkPriceFloat:', sbBenchmarkPriceFloat)
-        print('sbLastPriceStr:', sbLastPriceStr)
-        print('sbLastPriceFloat:', sbLastPriceFloat)
-        if sbLastPriceFloat < sbBenchmarkPriceFloat * decimalChangeLimit:
-            return True
-        else: 
-            return False
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
-        writeErrorLog(inspect.stack()[0][3], str(e))    
 
 def createPidFile():
     print ('\nSTART', inspect.stack()[0][3])
@@ -1082,7 +1068,6 @@ def nordnetPlaceOrder(sbStockNameShort, sbSignalType): #sbSignalType = BUY or SE
             'reason': r.reason,
             'url': r.url
             }
-            sendEmail(inspect.stack()[0][3], 'FAILED', sbStockNameShort + ':' + sbSignalType, sbStockNameShort + '\n'+ pformat(payloadOrder))
             writeErrorLog(inspect.stack()[0][3], pformat(responseDict))
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
@@ -1207,7 +1192,7 @@ def sbGetSignal_afterMarketHours():
                         not isStockHeld(sbStockNameShort) and not 
                         isStockActive(sbStockNameShort, gloSbSignalBuy) and not 
                         isMaxStockHeldAndActive() and 
-                        isLastPriceWithinBuyLevel(sbAveragePrice, sbLastPrice)
+                        isLastPriceWithinBuyLevel(sbAveragePrice, sbLastPrice, sbStockNameShort)
                         ):
                         print ('found', sbStockNameShort, gloSbSignalBuy)
                         # pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
@@ -1244,54 +1229,50 @@ def sbGetSignal():
                 sbStockNameShort = row.td.a.get_text()
                 sbLastPrice = row.find_all('td')[12].get_text()
                 sbBenchmarkPrice = row.find_all('td')[8].get_text()
-                sbSignal = row.find_all('td')[10].img['src'] # ex "../img/DOWNRed.png"
+                sbSignal = row.find_all('td')[10].img['src'] # ex "../img/DOWNRed.png" or "[...]ONWHITE[...]""
                 sbSignalConf = sbSignal[7:-4] # remove first 7 and last 4 chars (for stat use) -> ex: "DOWNRed"
 
                 # confirmation statistics
-                if sbSignalConf.find('UP') != -1 or sbSignalConf.find('DOWN') != -1:
-                    sbTempSignal = None
-                    if sbSignalConf.find('UP') != -1:
-                        sbTempSignal = gloSbSignalBuy
-                    elif sbSignalConf.find('DOWN') != -1:
-                        sbTempSignal = gloSbSignalSell
-                    if not isConfirmationStatSet(sbStockNameShort, sbSignalConf):
-                        writeConfirmationStatistics(sbStockNameShort, sbTempSignal, sbSignalConf, sbLastPrice, sbBenchmarkPrice)
-
-                # find substring match (-1 returned if no match)
-                if (
-                sbSignal.find(glo_sbArrowDown_green) != -1 or 
-                sbSignal.find(glo_sbArrowDown_yellow) != -1 or 
-                sbSignal.find(glo_sbArrowDown_orange) != -1 
-                    ):
-                    sbSignal = gloSbSignalSell
-                elif sbSignal.find(glo_sbArrowUp_green) != -1:
+                if sbSignal.find('UP') != -1:
                     sbSignal = gloSbSignalBuy
+                elif sbSignal.find('DOWN') != -1:
+                    sbSignal = gloSbSignalSell
                 else:
-                    continue
+                    continue # sbSignal does not contain 'UP' or 'DOWN'; could ex be 'ONWhite'
+
+                # set stat log
+                if not isConfirmationStatSet(sbStockNameShort, sbSignalConf):
+                    writeConfirmationStatistics(sbStockNameShort, sbSignal, sbSignalConf, sbLastPrice, sbBenchmarkPrice) 
 
                 if isStockActiveTemp(sbStockNameShort, sbSignal):
                     print('STOCK', sbStockNameShort, 'already has ACTIVE_TEMP signal', sbSignal)
-                    continue
-                if sbSignal == gloSbSignalBuy:
-                    if (
-                        not isStockHeld(sbStockNameShort) and not 
-                        isStockActive(sbStockNameShort, gloSbSignalBuy) and not 
-                        isMaxStockHeldAndActive() and 
-                        isLastPriceWithinBenchmark(sbBenchmarkPrice, sbLastPrice, sbStockNameShort)
-                        # isLastPriceWithinBuyLevel(sbStockNameShort, float(sbBenchmarkPrice))
-                        ):
-                        print ('found', sbStockNameShort, gloSbSignalBuy)
-                        # pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
-                        nordnetPlaceOrder(sbStockNameShort, sbSignal)
 
-                elif sbSignal == gloSbSignalSell:
-                    if (
-                        isStockHeld(sbStockNameShort) and not 
-                        isStockActive(sbStockNameShort, sbSignal)
-                        ):
-                        print ('found', sbStockNameShort, gloSbSignalSell)
-                        # pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
-                        nordnetPlaceOrder(sbStockNameShort, sbSignal)
+                confirmed_stat = False
+                for item in glo_sb_arrow_confirmedBuyOrSell_list:
+                    if item == sbSignalConf:
+                        confirmed_stat = True
+                
+                if confirmed_stat == True:
+                    if sbSignal == gloSbSignalBuy:
+                        if (
+                            not isStockHeld(sbStockNameShort) and not 
+                            isStockActive(sbStockNameShort, gloSbSignalBuy) and not 
+                            isMaxStockHeldAndActive() and 
+                            isLastPriceWithinBuyLevel(sbBenchmarkPrice, sbLastPrice, sbStockNameShort)
+                            # isLastPriceWithinBuyLevel(sbStockNameShort, float(sbBenchmarkPrice))
+                            ):
+                            print ('found', sbStockNameShort, gloSbSignalBuy)
+                            # pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
+                            nordnetPlaceOrder(sbStockNameShort, sbSignal)
+
+                    elif sbSignal == gloSbSignalSell:
+                        if (
+                            isStockHeld(sbStockNameShort) and not 
+                            isStockActive(sbStockNameShort, sbSignal)
+                            ):
+                            print ('found', sbStockNameShort, gloSbSignalSell)
+                            # pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
+                            nordnetPlaceOrder(sbStockNameShort, sbSignal)
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
@@ -1302,7 +1283,6 @@ schedule.every().day.at("19:00").do(resetDaily) # remove activetemp (active intr
 schedule.every().day.at("19:45").do(sbGetSignal_afterMarketHours)
 schedule.every().day.at("20:00").do(sbGetSignal_afterMarketHours) # repeat in case failure at first
 schedule.every().day.at("22:00").do(resetDaily)
-schedule.every().day.at("22:10").do(resetConfStat)
 
 # for surverying script (in case of crash)
 createPidFile()
