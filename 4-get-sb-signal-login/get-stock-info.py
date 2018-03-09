@@ -222,16 +222,33 @@ def getStocksFromNn(temp_glo_stockInfo_list):
                 sbNameshortSplit = sbNameshort.split('.')
                 sbNameshortSplit = sbNameshortSplit[0]
                 sbName = row.get(glo_stockInfoColName_sbName)
-                sbNameUrlName = sbName.replace(' ', '%20')
-                urlNn1 = 'https://www.nordnet.se/search/#query:'
-                urlNn2 = '/type:instrument'
-                urlNnSearch = urlNn1 + sbNameUrlName + urlNn2
-                r = s.get(urlNnSearch)
+                # need split 'stockwik kuk' -> 'stockwik' 'kuk' -> 'stockvik+kuk' 
+
+                # sbNameUrlName = sbName.replace(' ', '%20')
+                # urlNn1 = 'https://www.nordnet.se/search/#query:'
+                # urlNn2 = '/type:instrument'
+                # urlNnSearch = urlNn1 + sbNameUrlName + urlNn2
+
+                urlNnSearch = 'https://www.nordnet.se/search/load.html'
+                payload = {
+                'query': 'STOCKWIK+FORVALTNING',
+                'type': 'instrument'
+                }
+
+                r = s.post('https://www.nordnet.se/search/load.html', data=payload)
                 if r.status_code != 200:
                     print('something when wrong in URL request:', r.status_code)
                     print('URL:', urlNnSearch)
+                test = soup.find(id=re.compile('search-results-container')) # returns container
                 BP()
-                soup = BeautifulSoup(r.content, 'html.parser')
+                pass
+                # r = s.get(urlNnSearch)
+                # if r.status_code != 200:
+                #     print('something when wrong in URL request:', r.status_code)
+                #     print('URL:', urlNnSearch)
+                # BP()
+                # soup = BeautifulSoup(r.content, 'html.parser')
+
                 # add:
                 # add to new dict
                 # updateStockList(months_dict, sbNameshort)
