@@ -20,11 +20,17 @@ from pprint import pformat
 sPathOutput = "/output/"
 sPathInput = "/input/"
 sPathError = "/errorlog/"
+# sFileRobot = '4-robo-get-sb-signal-login.py'
+sFileRobot = 'monitor-process.py'
 pathFile = os.path.dirname(os.path.abspath(__file__))
 
-while True:
-    pass
+# print (pathFile)
 
+echo = "echo"
+# command="./driver.exe"+" "+"bondville.dat"
+command='python3'
+# os.system(command + ' ' +sFileRobot)
+os.system("bash -e")
 # -----------------------------------------------------------
 # def getTimestampCustomStr(custom):
 #     return datetime.datetime.now().strftime(custom)

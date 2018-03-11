@@ -8,8 +8,14 @@ import smtplib
 pathFile = os.path.dirname(os.path.abspath(__file__))
 sPathInput = "/input/"
 sPathPidFile = '/pid.txt'
+fileToRunIfCrash = '4-robo-get-sb-signal-login.py'
 
 gloCredGmailAutotrading = 'credGmailAutotrading'
+pidNumberInt = 0
+errorCounter = 1
+errorCounterLimit = 3
+secondsToSleepSuccess = 10
+secondsToSleepFail = 10
 
 def getCredentials(domain):
     try:
@@ -24,25 +30,38 @@ def getCredentials(domain):
 def getPidFileNumber():
     print ('\nSTART', inspect.stack()[0][3])
     try:
+        global pidNumberInt
         with open(pathFile + sPathPidFile) as file:
             pidNumberStr = file.read()
-            return int(pidNumberStr)
+            pidNumberInt = int(pidNumberStr)
     except Exception as e:
             print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
-def monitorPidNumber(pidNumberInt):
+def monitorPidNumber():
     print ('\nSTART', inspect.stack()[0][3])
     try:
+        global errorCounter
         while True:
             try:
                 if os.getpgid(pidNumberInt):
                     print(pidNumberInt, 'exist!')
-                # time.sleep(300)
-                time.sleep(300)
+                print('sleeping', str(secondsToSleepSuccess), 'seconds')
+                time.sleep(secondsToSleepSuccess)
             except OSError:
-                print(pidNumberInt, 'does NOT exist!')
-                sendEmail('script might have CRASHED', '')
-                break
+                if errorCounter <= errorCounterLimit:
+                    print('errorCounter:', str(errorCounter))
+                    print(pidNumberInt, 'does NOT exist!')
+                    sendEmail('script might have CRASHED - trying restart attempt '+ str(errorCounter) + '/'+ str(errorCounterLimit) +' in ' + str(secondsToSleepFail) + ' seconds', '')
+                    print('sleeping', str(secondsToSleepFail), 'seconds')
+                    time.sleep(secondsToSleepFail)
+                    command='python3'
+                    os.system(command + ' ' +fileToRunIfCrash)
+                    getPidFileNumber()
+                    errorCounter += 1
+                    continue
+                else:
+                    sendEmail('script might have CRASHED - NO MORE restarts will be tried', '')
+                    break
     except Exception as e:
             print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
@@ -58,5 +77,5 @@ def sendEmail(sbj, body):
     except Exception as e:
         print ("ERROR in function", inspect.stack()[0][3] +': '+ str(e))
 
-pidNumberInt = getPidFileNumber()
-monitorPidNumber(pidNumberInt)
+getPidFileNumber()
+monitorPidNumber()
