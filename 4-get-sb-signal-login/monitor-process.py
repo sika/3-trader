@@ -14,8 +14,8 @@ gloCredGmailAutotrading = 'credGmailAutotrading'
 pidNumberInt = 0
 errorCounter = 1
 errorCounterLimit = 3
-secondsToSleepSuccess = 10
-secondsToSleepFail = 10
+secondsToSleepSuccess = 300
+secondsToSleepFail = 300
 
 def getCredentials(domain):
     try:
