@@ -1,0 +1,29 @@
+git branch:
+- first git push:
+git push --set-upstream origin [branchName]
+
+- Merge branch:
+git checkout master
+git pull origin master
+git merge nameOfBranch
+git push origin master
+
+Undo untracked changes (before commited)
+- one file:
+git checkout HEAD -- [path/filename]
+- all files (?):
+git reset --hard HEAD
+
+Stash
+- stash tracked:
+git stash
+- stash untracked:
+git stash -u
+- see stashes
+git stash list
+- recover last stash:
+git stash pop
+- recover specific stash:
+git stash pop stash@{n} NOTE: "n" in {n} is dependent on which stash (get list with git stash list)
+- Show stash content
+git stash show -p stash@{n} (remove -p to NOT show inside content)
