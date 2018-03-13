@@ -23,5 +23,7 @@ git stash -u
 git stash list
 - recover last stash:
 git stash pop
-recover specific stash:
+- recover specific stash:
 git stash pop stash@{n} NOTE: "n" in {n} is dependent on which stash (get list with git stash list)
+- Show stash content
+git stash show -p stash@{n} (remove -p to NOT show inside content)
