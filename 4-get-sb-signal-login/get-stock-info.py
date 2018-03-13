@@ -30,7 +30,12 @@ glo_stockInfoColName_24_percent = 'MONTH_24_PERCENT'
 glo_stockInfoColName_24_value = 'MONTH_24_VALUE'
 glo_stockInfoColName_percentAverage = 'AVERAGE_PERCENT'
 glo_stockInfoColName_valueAverage = 'AVERAGE_VALUE'
-glo_stockInfoColName_url = 'URL_SB'
+glo_stockInfoColName_url_sb = 'URL_SB'
+glo_stockInfoColName_market_id = 'MARKET_ID'
+glo_stockInfoColName_identifier_id = 'IDENTIFIER_ID'
+glo_stockInfoColName_url_nn = 'URL_NN'
+
+glo_stockInfo_value_notAvailable = 'N/A'
 # Output:
 #   NAMESHORT_SB    NAME_SB     MONTH_6     MONTH_12    MONTH_24    AVERAGE
 
@@ -156,7 +161,7 @@ def getStocksFromSb(temp_glo_stockInfo_list):
                     glo_stockInfoColName_24_value: value_24,
                     glo_stockInfoColName_percentAverage: percent_average,
                     glo_stockInfoColName_valueAverage: value_average,
-                    glo_stockInfoColName_url: url
+                    glo_stockInfoColName_url_sb: url
                 }
                 updateStockList(months_dict, sbNameshort)
                 counter += 1
@@ -193,7 +198,11 @@ def writeStockList(temp_glo_stockInfo_list):
             glo_stockInfoColName_24_value, 
             glo_stockInfoColName_percentAverage,
             glo_stockInfoColName_valueAverage,
-            glo_stockInfoColName_url]
+            glo_stockInfoColName_url_sb,
+            glo_stockInfoColName_market_id,
+            glo_stockInfoColName_identifier_id,
+            glo_stockInfoColName_url_nn]
+
             writer = csv.DictWriter(csvFile, fieldnames=fieldnames, delimiter = ';')
             # if not file_exists:
             writer.writeheader()
@@ -208,7 +217,10 @@ def writeStockList(temp_glo_stockInfo_list):
                     glo_stockInfoColName_24_value: row.get(glo_stockInfoColName_24_value), 
                     glo_stockInfoColName_percentAverage: row.get(glo_stockInfoColName_percentAverage),
                     glo_stockInfoColName_valueAverage: row.get(glo_stockInfoColName_valueAverage),
-                    glo_stockInfoColName_url: row.get(glo_stockInfoColName_url)}
+                    glo_stockInfoColName_url_sb: row.get(glo_stockInfoColName_url_sb),
+                    glo_stockInfoColName_market_id: row.get(glo_stockInfoColName_market_id),
+                    glo_stockInfoColName_identifier_id: row.get(glo_stockInfoColName_identifier_id),
+                    glo_stockInfoColName_url_nn: row.get(glo_stockInfoColName_url_nn)}
                 writer.writerow(statDict)
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
@@ -216,50 +228,90 @@ def writeStockList(temp_glo_stockInfo_list):
 def getStocksFromNn(temp_glo_stockInfo_list):
     print ('\nSTART', inspect.stack()[0][3])
     try:
+        counter = 2 
         with requests.Session() as s:
             for row in temp_glo_stockInfo_list:
                 sbNameshort = row.get(glo_stockInfoColName_sbNameshort)
-                sbNameshortSplit = sbNameshort.split('.')
-                sbNameshortSplit = sbNameshortSplit[0]
+                print(counter,':',sbNameshort)
+                counter += 1
+                sbNameshortList = sbNameshort.split('.') #get rid of '.ST'
+                sbNameshortSplit = sbNameshortList[0]
                 sbName = row.get(glo_stockInfoColName_sbName)
-                # need split 'stockwik kuk' -> 'stockwik' 'kuk' -> 'stockvik+kuk' 
+                sbNameList = sbName.split(' ')
+                # get query:
+                query = ''
+                for nameSplit in sbNameList:
+                    # will yeild ex '+stockwik+folvaltning'
+                    query += '+' + nameSplit
+                # remove leading '+'
+                query = query[1:]
 
-                # sbNameUrlName = sbName.replace(' ', '%20')
-                # urlNn1 = 'https://www.nordnet.se/search/#query:'
-                # urlNn2 = '/type:instrument'
-                # urlNnSearch = urlNn1 + sbNameUrlName + urlNn2
-
+                urlNn = 'https://www.nordnet.se'
                 urlNnSearch = 'https://www.nordnet.se/search/load.html'
                 payload = {
-                'query': 'STOCKWIK+FORVALTNING',
+                'query': query,
                 'type': 'instrument'
                 }
 
+                # Initial stock search
                 r = s.post('https://www.nordnet.se/search/load.html', data=payload)
                 if r.status_code != 200:
                     print('something when wrong in URL request:', r.status_code)
                     print('URL:', urlNnSearch)
-                test = soup.find(id=re.compile('search-results-container')) # returns container
-                BP()
-                pass
-                # r = s.get(urlNnSearch)
-                # if r.status_code != 200:
-                #     print('something when wrong in URL request:', r.status_code)
-                #     print('URL:', urlNnSearch)
+                soup = BeautifulSoup(r.content, 'html.parser')
                 # BP()
-                # soup = BeautifulSoup(r.content, 'html.parser')
+                try:
+                    urlNnStock_rel = soup.find(id=re.compile('search-results-container')).a['href'] # first href (relative), such as '/mux/web/marknaden/aktiehemsidan/index.html?identifier=1007&marketid=11'
 
-                # add:
-                # add to new dict
-                # updateStockList(months_dict, sbNameshort)
-                # counter += 1
-        # temp_glo_stockInfo_list = glo_stockInfo_list
-        # return temp_glo_stockInfo_list
+                    # get IDs
+                    result = re.search('identifier=(.*)&', urlNnStock_rel)
+                    identifier_id = result.group(1)
+
+                    result = re.search('marketid=(.*)', urlNnStock_rel)
+                    market_id = result.group(1)
+
+                    # getting and going to first stock in result           
+                    url_stock = urlNn + urlNnStock_rel
+                    r = s.get(url_stock)
+                    if r.status_code != 200:
+                        print('something when wrong in URL request:', r.status_code)
+                        print('URL:', url_stock)
+                    soup = BeautifulSoup(r.content, 'html.parser')
+                    allStockWordsList = soup.find('h1', class_="title").get_text(strip=True).split(' ')
+                    nnNameshort = allStockWordsList[len(allStockWordsList)-1] # will give ex '(STWK)'
+                    nnNameshort = nnNameshort[1:-1] #remove '(' and ')' at beginning and end respectively
+                
+                except Exception as e:
+                    print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+                    nn_info_dict = {
+                        glo_stockInfoColName_market_id: glo_stockInfo_value_notAvailable,
+                        glo_stockInfoColName_identifier_id: glo_stockInfo_value_notAvailable,
+                        glo_stockInfoColName_url_nn: glo_stockInfo_value_notAvailable
+                    }
+                    updateStockList(nn_info_dict, sbNameshort)
+                    continue                
+                if sbNameshortSplit == nnNameshort:
+                    # add to new dict
+                    nn_info_dict = {
+                        glo_stockInfoColName_market_id: market_id,
+                        glo_stockInfoColName_identifier_id: identifier_id,
+                        glo_stockInfoColName_url_nn: url_stock
+                    }
+                    updateStockList(nn_info_dict, sbNameshort)
+                else:
+                    nn_info_dict = {
+                        glo_stockInfoColName_market_id: glo_stockInfo_value_notAvailable,
+                        glo_stockInfoColName_identifier_id: glo_stockInfo_value_notAvailable,
+                        glo_stockInfoColName_url_nn: glo_stockInfo_value_notAvailable
+                    }
+                    updateStockList(nn_info_dict, sbNameshort)
+        temp_glo_stockInfo_list = glo_stockInfo_list
+        return temp_glo_stockInfo_list
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))        
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
 temp_glo_stockInfo_list = getStockList()
-# temp_glo_stockInfo_list = getStocksFromSb(temp_glo_stockInfo_list)
+temp_glo_stockInfo_list = getStocksFromSb(temp_glo_stockInfo_list)
 temp_glo_stockInfo_list = getStocksFromNn(temp_glo_stockInfo_list)
 writeStockList(temp_glo_stockInfo_list)
 
