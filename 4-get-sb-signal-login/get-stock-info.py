@@ -6,6 +6,7 @@ import requests
 import re
 import datetime
 from bs4 import BeautifulSoup
+from collections import OrderedDict
 from pprint import pprint
 from pprint import pformat
 
@@ -36,6 +37,8 @@ glo_stockInfoColName_identifier_id = 'IDENTIFIER_ID'
 glo_stockInfoColName_url_nn = 'URL_NN'
 
 glo_stockInfo_value_notAvailable = 'N/A'
+
+glo_iterations_limit = 10
 # Output:
 #   NAMESHORT_SB    NAME_SB     MONTH_6     MONTH_12    MONTH_24    AVERAGE
 
@@ -52,7 +55,10 @@ def getStockList():
             records = csv.DictReader(csvFile, fieldnames=fieldnames, delimiter=';') # omitting "fieldnames" - will make file headers fieldnames
             next(csvFile) #SKIP header
             for rowDict in records:
-                setStockList(rowDict)
+                order_of_keys = fieldnames
+                # list_of_tuples = [(key, rowDict[key]) for key in order_of_keys]
+                # dictOrdered = OrderedDict(list_of_tuples)
+                setStockList(getOrderedDictFromDict(rowDict, order_of_keys))
             temp_glo_stockInfo_list = glo_stockInfo_list
             return temp_glo_stockInfo_list
     except Exception as e:
@@ -65,14 +71,49 @@ def setStockList(rowDict):
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))  
 
+def updateStockList(dict, sbNameshort):
+    try:
+        global glo_stockInfo_list
+        temp_glo_stockInfo_list = glo_stockInfo_list
+        for row in temp_glo_stockInfo_list:
+            if row.get(glo_stockInfoColName_sbNameshort) == sbNameshort:
+                row.update(dict)
+                break
+        glo_stockInfo_list = temp_glo_stockInfo_list
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))    
+
+def getOrderedDictFromDict(dictTemp, order_of_keys):
+    try:
+        list_of_tuples = [(key, dictTemp[key]) for key in order_of_keys]
+        return OrderedDict(list_of_tuples)
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))     
+
+def writeStockList(temp_glo_stockInfo_list):
+    print ('\nSTART', inspect.stack()[0][3])
+    try:
+        file_confStat = pathFile + sPathOutput + glo_stockInfo_output_noFileEnd_str + ' ' + getDateTodayStr() + '.csv'
+        file_exists = os.path.isfile(file_confStat)
+        with open (file_confStat, 'w') as csvFile:
+            fieldnames = []
+            for key in glo_stockInfo_list[0]:
+                fieldnames.append(key)
+            writer = csv.DictWriter(csvFile, fieldnames=fieldnames, delimiter = ';')
+            writer.writeheader()
+            for row in temp_glo_stockInfo_list:
+                writer.writerow(row)
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+
 def getStocksFromSb(temp_glo_stockInfo_list):
     print ('\nSTART', inspect.stack()[0][3])
     try:
         counter = 2
         with requests.Session() as s:
             for row in temp_glo_stockInfo_list:
-                # if counter > 4:
-                #     break
+                if counter > glo_iterations_limit:
+                    break
                 sbNameshort = row.get(glo_stockInfoColName_sbNameshort)
                 print (counter, ':' ,sbNameshort)
                 url_postfix = sbNameshort
@@ -152,78 +193,23 @@ def getStocksFromSb(temp_glo_stockInfo_list):
                     value_sum += value
                 value_average = int(value_sum/len(value_list))
 
-                months_dict = {
-                    glo_stockInfoColName_6_percent: percent_6,
-                    glo_stockInfoColName_6_value: value_6,
-                    glo_stockInfoColName_12_percent: percent_12,
-                    glo_stockInfoColName_12_value: value_12,
-                    glo_stockInfoColName_24_percent: percent_24,
-                    glo_stockInfoColName_24_value: value_24,
-                    glo_stockInfoColName_percentAverage: percent_average,
-                    glo_stockInfoColName_valueAverage: value_average,
-                    glo_stockInfoColName_url_sb: url
-                }
-                updateStockList(months_dict, sbNameshort)
+                list_of_tuples = [(glo_stockInfoColName_6_percent, percent_6),
+              (glo_stockInfoColName_6_value, value_6),
+              (glo_stockInfoColName_12_percent, percent_12),
+              (glo_stockInfoColName_12_value, value_12),
+              (glo_stockInfoColName_24_percent, percent_24),
+              (glo_stockInfoColName_24_value, value_24),
+              (glo_stockInfoColName_percentAverage, percent_average),
+              (glo_stockInfoColName_valueAverage, value_average),
+              (glo_stockInfoColName_url_sb, url)]
+
+                dictOrdered = OrderedDict(list_of_tuples)
+                updateStockList(dictOrdered, sbNameshort)
                 counter += 1
         temp_glo_stockInfo_list = glo_stockInfo_list
         return temp_glo_stockInfo_list
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))  
-
-def updateStockList(dict, sbNameshort):
-    try:
-        global glo_stockInfo_list
-        temp_glo_stockInfo_list = glo_stockInfo_list
-        for row in temp_glo_stockInfo_list:
-            if row.get(glo_stockInfoColName_sbNameshort) == sbNameshort:
-                row.update(dict)
-                break
-        glo_stockInfo_list = temp_glo_stockInfo_list
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))      
-
-def writeStockList(temp_glo_stockInfo_list):
-    print ('\nSTART', inspect.stack()[0][3])
-    try:
-        file_confStat = pathFile + sPathOutput + glo_stockInfo_output_noFileEnd_str + ' ' + getDateTodayStr() + '.csv'
-        file_exists = os.path.isfile(file_confStat)
-        with open (file_confStat, 'w') as csvFile:
-            fieldnames = [glo_stockInfoColName_sbNameshort, 
-            glo_stockInfoColName_sbName, 
-            glo_stockInfoColName_6_percent, 
-            glo_stockInfoColName_6_value, 
-            glo_stockInfoColName_12_percent, 
-            glo_stockInfoColName_12_value, 
-            glo_stockInfoColName_24_percent, 
-            glo_stockInfoColName_24_value, 
-            glo_stockInfoColName_percentAverage,
-            glo_stockInfoColName_valueAverage,
-            glo_stockInfoColName_url_sb,
-            glo_stockInfoColName_market_id,
-            glo_stockInfoColName_identifier_id,
-            glo_stockInfoColName_url_nn]
-
-            writer = csv.DictWriter(csvFile, fieldnames=fieldnames, delimiter = ';')
-            # if not file_exists:
-            writer.writeheader()
-            for row in temp_glo_stockInfo_list:
-                statDict = {glo_stockInfoColName_sbNameshort: row.get(glo_stockInfoColName_sbNameshort), 
-                    glo_stockInfoColName_sbName: row.get(glo_stockInfoColName_sbName), 
-                    glo_stockInfoColName_6_percent: row.get(glo_stockInfoColName_6_percent), 
-                    glo_stockInfoColName_6_value: row.get(glo_stockInfoColName_6_value), 
-                    glo_stockInfoColName_12_percent: row.get(glo_stockInfoColName_12_percent),
-                    glo_stockInfoColName_12_value: row.get(glo_stockInfoColName_12_value),
-                    glo_stockInfoColName_24_percent: row.get(glo_stockInfoColName_24_percent), 
-                    glo_stockInfoColName_24_value: row.get(glo_stockInfoColName_24_value), 
-                    glo_stockInfoColName_percentAverage: row.get(glo_stockInfoColName_percentAverage),
-                    glo_stockInfoColName_valueAverage: row.get(glo_stockInfoColName_valueAverage),
-                    glo_stockInfoColName_url_sb: row.get(glo_stockInfoColName_url_sb),
-                    glo_stockInfoColName_market_id: row.get(glo_stockInfoColName_market_id),
-                    glo_stockInfoColName_identifier_id: row.get(glo_stockInfoColName_identifier_id),
-                    glo_stockInfoColName_url_nn: row.get(glo_stockInfoColName_url_nn)}
-                writer.writerow(statDict)
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
 def getStocksFromNn(temp_glo_stockInfo_list):
     print ('\nSTART', inspect.stack()[0][3])
@@ -232,6 +218,8 @@ def getStocksFromNn(temp_glo_stockInfo_list):
         with requests.Session() as s:
             for row in temp_glo_stockInfo_list:
                 sbNameshort = row.get(glo_stockInfoColName_sbNameshort)
+                if counter > glo_iterations_limit:
+                    break
                 print(counter,':',sbNameshort)
                 counter += 1
                 sbNameshortList = sbNameshort.split('.') #get rid of '.ST'
@@ -283,28 +271,28 @@ def getStocksFromNn(temp_glo_stockInfo_list):
                 
                 except Exception as e:
                     print ("ERROR in", inspect.stack()[0][3], ':', str(e))
-                    nn_info_dict = {
-                        glo_stockInfoColName_market_id: glo_stockInfo_value_notAvailable,
-                        glo_stockInfoColName_identifier_id: glo_stockInfo_value_notAvailable,
-                        glo_stockInfoColName_url_nn: glo_stockInfo_value_notAvailable
-                    }
-                    updateStockList(nn_info_dict, sbNameshort)
+                    list_of_tuples = [(glo_stockInfoColName_market_id, glo_stockInfo_value_notAvailable),
+                  (glo_stockInfoColName_identifier_id, glo_stockInfo_value_notAvailable),
+                  (glo_stockInfoColName_url_nn, glo_stockInfo_value_notAvailable)]
+
+                    dictOrdered = OrderedDict(list_of_tuples)
+                    updateStockList(dictOrdered, sbNameshort)
                     continue                
                 if sbNameshortSplit == nnNameshort:
-                    # add to new dict
-                    nn_info_dict = {
-                        glo_stockInfoColName_market_id: market_id,
-                        glo_stockInfoColName_identifier_id: identifier_id,
-                        glo_stockInfoColName_url_nn: url_stock
-                    }
-                    updateStockList(nn_info_dict, sbNameshort)
+                    list_of_tuples = [(glo_stockInfoColName_market_id, market_id),
+                  (glo_stockInfoColName_identifier_id, identifier_id),
+                  (glo_stockInfoColName_url_nn, url_stock)]
+
+                    dictOrdered = OrderedDict(list_of_tuples)
+                    updateStockList(dictOrdered, sbNameshort)
                 else:
-                    nn_info_dict = {
-                        glo_stockInfoColName_market_id: glo_stockInfo_value_notAvailable,
-                        glo_stockInfoColName_identifier_id: glo_stockInfo_value_notAvailable,
-                        glo_stockInfoColName_url_nn: glo_stockInfo_value_notAvailable
-                    }
-                    updateStockList(nn_info_dict, sbNameshort)
+                    list_of_tuples = [(glo_stockInfoColName_market_id, glo_stockInfo_value_notAvailable),
+                  (glo_stockInfoColName_identifier_id, glo_stockInfo_value_notAvailable),
+                  (glo_stockInfoColName_url_nn, glo_stockInfo_value_notAvailable)]
+
+                    dictOrdered = OrderedDict(list_of_tuples)
+                    updateStockList(dictOrdered, sbNameshort)
+                    # updateStockList(nn_info_dict, sbNameshort)
         temp_glo_stockInfo_list = glo_stockInfo_list
         return temp_glo_stockInfo_list
     except Exception as e:
