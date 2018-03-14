@@ -6,6 +6,7 @@ import requests
 import re
 import datetime
 from bs4 import BeautifulSoup
+from statistics import median
 from collections import OrderedDict
 from pprint import pprint
 from pprint import pformat
@@ -23,14 +24,16 @@ glo_sbGeneralUrl_str = 'https://www.swedishbulls.com/SignalPage.aspx?lang=en&Tic
 
 glo_stockInfoColName_sbNameshort = 'NAMESHORT_SB'
 glo_stockInfoColName_sbName = 'NAME_SB'
-glo_stockInfoColName_6_percent = 'MONTH_6_PERCENT'
+glo_stockInfoColName_6_percent = 'MONTH_6_PERCENT_CORRECT'
 glo_stockInfoColName_6_value = 'MONTH_6_VALUE'
-glo_stockInfoColName_12_percent = 'MONTH_12_PERCENT'
+glo_stockInfoColName_12_percent = 'MONTH_12_PERCENT_CORRECT'
 glo_stockInfoColName_12_value = 'MONTH_12_VALUE'
-glo_stockInfoColName_24_percent = 'MONTH_24_PERCENT'
+glo_stockInfoColName_24_percent = 'MONTH_24_PERCENT_CORRECT'
 glo_stockInfoColName_24_value = 'MONTH_24_VALUE'
-glo_stockInfoColName_percentAverage = 'AVERAGE_PERCENT'
+glo_stockInfoColName_percentAverage = 'AVERAGE_PERCENT_CORRECT'
 glo_stockInfoColName_valueAverage = 'AVERAGE_VALUE'
+glo_stockInfoColName_buyAveragePercentChange = 'BUY_AVERAGE_PERCENT_CHANGE'
+glo_stockInfoColName_buyMedianPercentChange = 'BUY_MEDIAN_PERCENT_CHANGE'
 glo_stockInfoColName_url_sb = 'URL_SB'
 glo_stockInfoColName_market_id = 'MARKET_ID'
 glo_stockInfoColName_identifier_id = 'IDENTIFIER_ID'
@@ -38,7 +41,7 @@ glo_stockInfoColName_url_nn = 'URL_NN'
 
 glo_stockInfo_value_notAvailable = 'N/A'
 
-glo_iterations_limit = 10
+glo_iterations_limit = 1000
 # Output:
 #   NAMESHORT_SB    NAME_SB     MONTH_6     MONTH_12    MONTH_24    AVERAGE
 
@@ -193,6 +196,26 @@ def getStocksFromSb(temp_glo_stockInfo_list):
                     value_sum += value
                 value_average = int(value_sum/len(value_list))
 
+                # average buy percentage change and median value
+                rows_months_24 = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory24_DXDataRow"))
+                array_length = len(rows_months_24)
+                percent_total_change = 0
+                buys_total = 0
+                median_percentChange_list = []
+                for i in range(0, array_length):
+                    if array_length-i != array_length:
+                        signalCurrent = rows_months_24[array_length-1-i].find_all('td')[2].get_text()
+                        priceCurrent = float(rows_months_24[array_length-1-i].find_all('td')[1].get_text().replace(',', ''))
+                        signalFormer = rows_months_24[array_length-i].find_all('td')[2].get_text()
+                        priceFormer = float(rows_months_24[array_length-i].find_all('td')[1].get_text().replace(',', ''))
+                        if signalCurrent == 'SHORT' or signalCurrent == 'SELL' and signalFormer == 'BUY':
+                            median_percentChange_list.append(((priceCurrent/priceFormer)-1)*100)
+                            percent_total_change += ((priceCurrent/priceFormer)-1)*100
+                            buys_total += 1
+
+                average_buy_percent_change = round(percent_total_change/buys_total, 2)
+                median_buy_percent_change = round(median(median_percentChange_list), 2)
+
                 list_of_tuples = [(glo_stockInfoColName_6_percent, percent_6),
               (glo_stockInfoColName_6_value, value_6),
               (glo_stockInfoColName_12_percent, percent_12),
@@ -201,6 +224,8 @@ def getStocksFromSb(temp_glo_stockInfo_list):
               (glo_stockInfoColName_24_value, value_24),
               (glo_stockInfoColName_percentAverage, percent_average),
               (glo_stockInfoColName_valueAverage, value_average),
+              (glo_stockInfoColName_buyAveragePercentChange, average_buy_percent_change),
+              (glo_stockInfoColName_buyMedianPercentChange, median_buy_percent_change),
               (glo_stockInfoColName_url_sb, url)]
 
                 dictOrdered = OrderedDict(list_of_tuples)
