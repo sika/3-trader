@@ -24,6 +24,7 @@ glo_sbGeneralUrl_str = 'https://www.swedishbulls.com/SignalPage.aspx?lang=en&Tic
 
 glo_stockInfoColName_sbNameshort = 'NAMESHORT_SB'
 glo_stockInfoColName_sbName = 'NAME_SB'
+glo_stockInfoColName_price = 'PRICE'
 glo_stockInfoColName_6_percent = 'MONTH_6_PERCENT_CORRECT'
 glo_stockInfoColName_6_value = 'MONTH_6_VALUE'
 glo_stockInfoColName_12_percent = 'MONTH_12_PERCENT_CORRECT'
@@ -34,6 +35,7 @@ glo_stockInfoColName_percentAverage = 'AVERAGE_PERCENT_CORRECT'
 glo_stockInfoColName_valueAverage = 'AVERAGE_VALUE'
 glo_stockInfoColName_buyAveragePercentChange = 'BUY_AVERAGE_PERCENT_CHANGE'
 glo_stockInfoColName_buyMedianPercentChange = 'BUY_MEDIAN_PERCENT_CHANGE'
+glo_stockInfoColName_buysTotal = 'BUYS_TOTAL'
 glo_stockInfoColName_url_sb = 'URL_SB'
 glo_stockInfoColName_market_id = 'MARKET_ID'
 glo_stockInfoColName_identifier_id = 'IDENTIFIER_ID'
@@ -100,7 +102,19 @@ def writeStockList(temp_glo_stockInfo_list):
         file_exists = os.path.isfile(file_confStat)
         with open (file_confStat, 'w') as csvFile:
             fieldnames = []
-            for key in glo_stockInfo_list[0]:
+            indexWithMaxNumOfKeys = 0
+            maxNumOfKeys = 0
+            counter = 0
+            # get index with most number of keys to get correct fieldnames
+            for dictTemp in glo_stockInfo_list:
+                if len(dictTemp.keys()) > maxNumOfKeys:
+                    maxNumOfKeys = len(dictTemp.keys())
+                    indexWithMaxNumOfKeys = counter
+                if counter == len(glo_stockInfo_list)-1:
+                    break
+                else:
+                    counter += 1
+            for key in glo_stockInfo_list[indexWithMaxNumOfKeys]:
                 fieldnames.append(key)
             writer = csv.DictWriter(csvFile, fieldnames=fieldnames, delimiter = ';')
             writer.writeheader()
@@ -119,6 +133,7 @@ def getStocksFromSb(temp_glo_stockInfo_list):
                     break
                 sbNameshort = row.get(glo_stockInfoColName_sbNameshort)
                 print (counter, ':' ,sbNameshort)
+                counter += 1
                 url_postfix = sbNameshort
                 url = glo_sbGeneralUrl_str + url_postfix
                 r = s.get(url)
@@ -131,10 +146,16 @@ def getStocksFromSb(temp_glo_stockInfo_list):
                     continue
                 soup = BeautifulSoup(r.content, 'html.parser')
                 months_dict = {}
-                percent_6 = 'N/A'
-                percent_12 = 'N/A'
-                percent_24 = 'N/A'
-                percent_average = 'N/A'
+                percent_6 = percent_12 = percent_24 = percent_average = price_last_close = 'N/A'
+                # percent_12 = 'N/A'
+                # percent_24 = 'N/A'
+                # percent_average = 'N/A'
+
+                try:
+                    price_last_close = float(soup.find(id='MainContent_lastpriceboxsub').get_text(strip=True).replace(',', ''))
+                except Exception as e:
+                    print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+                    pass
 
                 all_imgTags_6_month = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory6_cell"))
                 if not all_imgTags_6_month: #list is empty
@@ -216,25 +237,26 @@ def getStocksFromSb(temp_glo_stockInfo_list):
                 average_buy_percent_change = round(percent_total_change/buys_total, 2)
                 median_buy_percent_change = round(median(median_percentChange_list), 2)
 
-                list_of_tuples = [(glo_stockInfoColName_6_percent, percent_6),
-              (glo_stockInfoColName_6_value, value_6),
-              (glo_stockInfoColName_12_percent, percent_12),
-              (glo_stockInfoColName_12_value, value_12),
-              (glo_stockInfoColName_24_percent, percent_24),
-              (glo_stockInfoColName_24_value, value_24),
-              (glo_stockInfoColName_percentAverage, percent_average),
-              (glo_stockInfoColName_valueAverage, value_average),
-              (glo_stockInfoColName_buyAveragePercentChange, average_buy_percent_change),
-              (glo_stockInfoColName_buyMedianPercentChange, median_buy_percent_change),
-              (glo_stockInfoColName_url_sb, url)]
+                list_of_tuples = [(glo_stockInfoColName_price, price_last_close),
+                (glo_stockInfoColName_6_percent, percent_6),
+                (glo_stockInfoColName_6_value, value_6),
+                (glo_stockInfoColName_12_percent, percent_12),
+                (glo_stockInfoColName_12_value, value_12),
+                (glo_stockInfoColName_24_percent, percent_24),
+                (glo_stockInfoColName_24_value, value_24),
+                (glo_stockInfoColName_percentAverage, percent_average),
+                (glo_stockInfoColName_valueAverage, value_average),
+                (glo_stockInfoColName_buyAveragePercentChange, average_buy_percent_change),
+                (glo_stockInfoColName_buyMedianPercentChange, median_buy_percent_change),
+                (glo_stockInfoColName_buysTotal, buys_total),
+                (glo_stockInfoColName_url_sb, url)]
 
                 dictOrdered = OrderedDict(list_of_tuples)
                 updateStockList(dictOrdered, sbNameshort)
-                counter += 1
         temp_glo_stockInfo_list = glo_stockInfo_list
         return temp_glo_stockInfo_list
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))  
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
 def getStocksFromNn(temp_glo_stockInfo_list):
     print ('\nSTART', inspect.stack()[0][3])
@@ -326,6 +348,7 @@ def getStocksFromNn(temp_glo_stockInfo_list):
 temp_glo_stockInfo_list = getStockList()
 temp_glo_stockInfo_list = getStocksFromSb(temp_glo_stockInfo_list)
 temp_glo_stockInfo_list = getStocksFromNn(temp_glo_stockInfo_list)
+# pprint(temp_glo_stockInfo_list)
 writeStockList(temp_glo_stockInfo_list)
 
 # Goal:
