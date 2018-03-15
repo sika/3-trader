@@ -269,18 +269,22 @@ def getStocksFromNn(temp_glo_stockInfo_list):
                     break
                 print(counter,':',sbNameshort)
                 counter += 1
-                sbNameshortList = sbNameshort.split('.') #get rid of '.ST'
-                sbNameshortSplit = sbNameshortList[0]
-                sbName = row.get(glo_stockInfoColName_sbName)
-                sbNameList = sbName.split(' ')
+                sbNameshortList = re.findall(r"[\w']+", sbNameshort)
+                sbNameshortSplit = ''
+                array_length = len(sbNameshortList)
+                for i in range(0, array_length-1): # skip last word (e.g., 'ST', 'NGM')
+                    if i < array_length-1:
+                        sbNameshortSplit += ' ' + sbNameshortList[i]
+                # remove leading ' '
+                sbNameshortSplit = sbNameshortSplit[1:]
+                sbNameshortList = sbNameshortSplit.split()
                 # get query:
                 query = ''
-                for nameSplit in sbNameList:
-                    # will yeild ex '+stockwik+folvaltning'
-                    query += '+' + nameSplit
+                for word in sbNameshortList:
+                    # will yield ex '+AGORA+PREF'
+                    query += '+' + word
                 # remove leading '+'
                 query = query[1:]
-
                 urlNn = 'https://www.nordnet.se'
                 urlNnSearch = 'https://www.nordnet.se/search/load.html'
                 payload = {
@@ -312,9 +316,8 @@ def getStocksFromNn(temp_glo_stockInfo_list):
                         print('something when wrong in URL request:', r.status_code)
                         print('URL:', url_stock)
                     soup = BeautifulSoup(r.content, 'html.parser')
-                    allStockWordsList = soup.find('h1', class_="title").get_text(strip=True).split(' ')
-                    nnNameshort = allStockWordsList[len(allStockWordsList)-1] # will give ex '(STWK)'
-                    nnNameshort = nnNameshort[1:-1] #remove '(' and ')' at beginning and end respectively
+                    stock_heading_sentence = soup.find('h1', class_="title").get_text(strip=True)
+                    nnNameshort = re.search(r'\((.*?)\)',stock_heading_sentence).group(1)
                 
                 except Exception as e:
                     print ("ERROR in", inspect.stack()[0][3], ':', str(e))
@@ -348,7 +351,6 @@ def getStocksFromNn(temp_glo_stockInfo_list):
 temp_glo_stockInfo_list = getStockList()
 temp_glo_stockInfo_list = getStocksFromSb(temp_glo_stockInfo_list)
 temp_glo_stockInfo_list = getStocksFromNn(temp_glo_stockInfo_list)
-# pprint(temp_glo_stockInfo_list)
 writeStockList(temp_glo_stockInfo_list)
 
 # Goal:
