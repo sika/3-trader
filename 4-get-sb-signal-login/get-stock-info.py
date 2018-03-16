@@ -33,6 +33,7 @@ glo_stockInfoColName_24_percent = 'MONTH_24_PERCENT_CORRECT'
 glo_stockInfoColName_24_value = 'MONTH_24_VALUE'
 glo_stockInfoColName_percentAverage = 'AVERAGE_PERCENT_CORRECT'
 glo_stockInfoColName_valueAverage = 'AVERAGE_VALUE'
+glo_stockInfoColName_24_buys_percent = 'BUYS_24_PERCENT'
 glo_stockInfoColName_buyAveragePercentChange = 'BUY_AVERAGE_PERCENT_CHANGE'
 glo_stockInfoColName_buyMedianPercentChange = 'BUY_MEDIAN_PERCENT_CHANGE'
 glo_stockInfoColName_buysTotal = 'BUYS_TOTAL'
@@ -147,9 +148,6 @@ def getStocksFromSb(temp_glo_stockInfo_list):
                 soup = BeautifulSoup(r.content, 'html.parser')
                 months_dict = {}
                 percent_6 = percent_12 = percent_24 = percent_average = price_last_close = 'N/A'
-                # percent_12 = 'N/A'
-                # percent_24 = 'N/A'
-                # percent_average = 'N/A'
 
                 try:
                     price_last_close = float(soup.find(id='MainContent_lastpriceboxsub').get_text(strip=True).replace(',', ''))
@@ -199,6 +197,24 @@ def getStocksFromSb(temp_glo_stockInfo_list):
                     counter_check = total_checks-counter_uncheck
                     percent_24 = round(100*(float(counter_check)/float(total_checks)), 1)
 
+                # buy percentage correct
+                signals_24 = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory24_DXDataRow"))
+                array_length = len(signals_24)
+                counter_buys = 0
+                counter_buys_uncheck = 0
+                for i in range(0,array_length-1):
+                    srcName = signals_24[i].find_all('td')[3].img['src'].lower()
+                    if srcName.find('boschecked') != -1:
+                        continue
+                    signal = signals_24[i].find_all('td')[2].get_text()
+                    # total buys
+                    if signal == 'BUY':
+                        counter_buys +=1
+                    if signal == 'BUY' and srcName.find('uncheck') != -1: # "uncheck" spelling more reliable than "check"
+                        counter_buys_uncheck += 1
+
+                counter_buys_check = counter_buys - counter_buys_uncheck
+                buys_percent_24 = round(100*(float(counter_buys_check)/float(counter_buys)), 1)
                 # average percent
                 percent_list = [percent_6, percent_12, percent_24]
                 counter_percent_items = 0
@@ -246,6 +262,7 @@ def getStocksFromSb(temp_glo_stockInfo_list):
                 (glo_stockInfoColName_24_value, value_24),
                 (glo_stockInfoColName_percentAverage, percent_average),
                 (glo_stockInfoColName_valueAverage, value_average),
+                (glo_stockInfoColName_24_buys_percent, buys_percent_24),
                 (glo_stockInfoColName_buyAveragePercentChange, average_buy_percent_change),
                 (glo_stockInfoColName_buyMedianPercentChange, median_buy_percent_change),
                 (glo_stockInfoColName_buysTotal, buys_total),
@@ -298,27 +315,30 @@ def getStocksFromNn(temp_glo_stockInfo_list):
                     print('something when wrong in URL request:', r.status_code)
                     print('URL:', urlNnSearch)
                 soup = BeautifulSoup(r.content, 'html.parser')
-                # BP()
-                try:
+                nnNameshort = ''
+                try: #checking 3 top results in search result list
                     urlNnStock_rel = soup.find(id=re.compile('search-results-container')).a['href'] # first href (relative), such as '/mux/web/marknaden/aktiehemsidan/index.html?identifier=1007&marketid=11'
+                    urlNnStock_rel_list = soup.find(id=re.compile('search-results-container')).find_all('div', class_='instrument-name') # all divs (containing a tags) in search result
+                    if urlNnStock_rel_list: # if list not empty
+                        for i in range(0,2):
+                            # get IDs
+                            result = re.search('identifier=(.*)&', urlNnStock_rel_list[i].a['href'])
+                            identifier_id = result.group(1)
 
-                    # get IDs
-                    result = re.search('identifier=(.*)&', urlNnStock_rel)
-                    identifier_id = result.group(1)
+                            result = re.search('marketid=(.*)', urlNnStock_rel_list[i].a['href'])
+                            market_id = result.group(1)
 
-                    result = re.search('marketid=(.*)', urlNnStock_rel)
-                    market_id = result.group(1)
-
-                    # getting and going to first stock in result           
-                    url_stock = urlNn + urlNnStock_rel
-                    r = s.get(url_stock)
-                    if r.status_code != 200:
-                        print('something when wrong in URL request:', r.status_code)
-                        print('URL:', url_stock)
-                    soup = BeautifulSoup(r.content, 'html.parser')
-                    stock_heading_sentence = soup.find('h1', class_="title").get_text(strip=True)
-                    nnNameshort = re.search(r'\((.*?)\)',stock_heading_sentence).group(1)
-                
+                            # getting and going to first stock in result
+                            url_stock = urlNn + urlNnStock_rel_list[i].a['href']
+                            r = s.get(url_stock)
+                            if r.status_code != 200:
+                                print('something when wrong in URL request:', r.status_code)
+                                print('URL:', url_stock)
+                            soup = BeautifulSoup(r.content, 'html.parser')
+                            stock_heading_sentence = soup.find('h1', class_="title").get_text(strip=True)
+                            nnNameshort = re.search(r'\((.*?)\)',stock_heading_sentence).group(1)
+                            if nnNameshort == sbNameshortSplit:
+                                break
                 except Exception as e:
                     print ("ERROR in", inspect.stack()[0][3], ':', str(e))
                     list_of_tuples = [(glo_stockInfoColName_market_id, glo_stockInfo_value_notAvailable),
