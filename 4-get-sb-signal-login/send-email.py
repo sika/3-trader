@@ -59,6 +59,6 @@ def send_mail(send_from, send_to, subject, text, files):
 
 files= [
 pathFile + sPathOutput + 'confirmationStatistics.csv',
-pathFile + sPathOutput + 'output-stock-info 2018-03-13.csv'
+pathFile + sPathOutput + 'orderStatistics.csv'
 ]
 send_mail('simon.autotrading@gmail.com', 'simon.autotrading@gmail.com', 'subj', 'text', files)
