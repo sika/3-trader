@@ -33,3 +33,6 @@ DATE;TIME;DAY;ERROR_COUNTER;E_MSG;CALLING_FUNCTION
 2018-03-09;12:11;Friday;1;;isConfirmationStatSet
 2018-03-09;13:52;Friday;1;[Errno 13] Permission denied: '/mnt/c/Users/skarlsson/Dropbox/Development/nordnet-api-00/python/3-trader/4-get-sb-signal-login/output/confirmationStatistics.csv';writeConfirmationStatistics
 2018-03-09;14:02;Friday;1;;sbGetSignal
+2018-03-21;10:12;Wednesday;1;;sbGetSignal
+2018-03-21;10:15;Wednesday;1;;sbGetSignal
+2018-03-21;15:16;Wednesday;1;;sbGetSignal

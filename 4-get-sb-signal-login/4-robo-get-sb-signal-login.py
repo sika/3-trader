@@ -27,6 +27,9 @@ sPathPidFile = '/pid.txt'
 pathFile = os.path.dirname(os.path.abspath(__file__))
 
 # --- Global variables
+# stock to buy
+glo_stockToBuy_str = 'stock-to-buy.csv'
+
 # sb login form
 gloSbLoginFormUser = 'ctl00$MainContent$uEmail'
 gloSbLoginFormPass = 'ctl00$MainContent$uPassword'
@@ -45,7 +48,7 @@ gloStatus_Key_Held = 'HELD'
 gloStatus_Key_Active = 'ACTIVE'
 gloStatus_Key_ActiveTemp = 'ACTIVE_TEMP'
 gloStatus_Key_MarketId = 'MARKET_ID'
-gloStatus_Key_Identifier = 'IDENTIFIER'
+gloStatus_Key_Identifier = 'IDENTIFIER_ID   '
 gloStatus_Key_UrlNordnet = 'URL_NORDNET'
 gloStatus_Key_StocksAmountHeld = 'AMOUNT_HELD'
 gloStatus_Key_Price = 'PRICE'
@@ -104,10 +107,10 @@ glo_sb_arrow_total_list = [
     glo_sbArrowDown_red
 ]
 glo_sb_arrow_confirmedBuyOrSell_list = [
-    glo_sbArrowUp_green,
     glo_sbArrowDown_green,
     glo_sbArrowDown_yellow,
-    glo_sbArrowDown_orange
+    glo_sbArrowDown_orange,
+    glo_sbArrowDown_red
 ]
 
 # email
@@ -326,7 +329,7 @@ def getCredentials(domain):
 def initStockStatus():
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        with open(pathFile + sPathInput + 'stockStatus.csv', 'rt', encoding='ISO-8859-1') as file:
+        with open(pathFile + sPathInput + glo_stockToBuy_str, 'rt', encoding='ISO-8859-1') as file:
             records = csv.DictReader(file, delimiter=';')
             for row in records:
                 setStockList(row)
@@ -979,7 +982,7 @@ def isMarketOpenCustom(timestamp):
 def isLastPriceWithinBuyLevel(sbPriceLevelStr, sbLastPriceStr, sbStockNameShort):
     try:
         print(sbStockNameShort)
-        percentageChangeLimit = 0.5
+        percentageChangeLimit = 0.8
         decimalChangeLimit = (percentageChangeLimit/100) + 1
         sbLastPriceFloat = float(sbLastPriceStr)
         sbPriceLevelFloat = float(sbPriceLevelStr)
@@ -1078,25 +1081,26 @@ def nordnetPlaceOrder(sbStockNameShort, sbSignalType): #sbSignalType = BUY or SE
 def pretendNordnetPlaceOrder(sbStockNameShort, sbSignalType):
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        print('nordnet login\n')        
-        r, header, s = nordnetLogin() # login to nordnet
+        pass
+        # print('nordnet login\n')        
+        # r, header, s = nordnetLogin() # login to nordnet
 
-        # nordnet price
-        orderNnValuePrice = getNnStockPrice(sbStockNameShort, sbSignalType, s)
-        payloadOrder = getPayloadOrderValues(sbStockNameShort, sbSignalType, orderNnValuePrice)
-        if payloadOrder == None:
-            print('payloadOrder returned None, aborting Order')
-            return None
+        # # nordnet price
+        # orderNnValuePrice = getNnStockPrice(sbStockNameShort, sbSignalType, s)
+        # payloadOrder = getPayloadOrderValues(sbStockNameShort, sbSignalType, orderNnValuePrice)
+        # if payloadOrder == None:
+        #     print('payloadOrder returned None, aborting Order')
+        #     return None
 
-        print ('PRETEND nordnet placing order\n')
-        if True: # Success
-            print ('PRETEND SUCCESS order\n')
-            pprint(payloadOrder)
-            setStockActiveTemp(sbStockNameShort, sbSignalType)
-            # setStockPriceTemp(sbStockNameShort, payloadOrder.get(orderNnValuePrice))
-            # sendEmail(sbStockNameShort + ':' + sbSignalType, sbStockNameShort + '\n'+ pformat(payloadOrder))
-        else:
-            print('PRETEND order FAILED!')
+        # print ('PRETEND nordnet placing order\n')
+        # if True: # Success
+        #     print ('PRETEND SUCCESS order\n')
+        #     pprint(payloadOrder)
+        #     setStockActiveTemp(sbStockNameShort, sbSignalType)
+        #     # setStockPriceTemp(sbStockNameShort, payloadOrder.get(orderNnValuePrice))
+        #     # sendEmail(sbStockNameShort + ':' + sbSignalType, sbStockNameShort + '\n'+ pformat(payloadOrder))
+        # else:
+        #     print('PRETEND order FAILED!')
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
@@ -1246,7 +1250,9 @@ def sbGetSignal():
 
                 if isStockActiveTemp(sbStockNameShort, sbSignal):
                     print('STOCK', sbStockNameShort, 'already has ACTIVE_TEMP signal', sbSignal)
+                    continue
 
+                # looking for arrows and their colors. Continue to SELL/BUY if stock is in list of glo_sb_arrow_confirmedBuyOrSell_list
                 confirmed_stat = False
                 for item in glo_sb_arrow_confirmedBuyOrSell_list:
                     if item == sbSignalConf:
@@ -1259,7 +1265,6 @@ def sbGetSignal():
                             isStockActive(sbStockNameShort, gloSbSignalBuy) and not 
                             isMaxStockHeldAndActive() and 
                             isLastPriceWithinBuyLevel(sbBenchmarkPrice, sbLastPrice, sbStockNameShort)
-                            # isLastPriceWithinBuyLevel(sbStockNameShort, float(sbBenchmarkPrice))
                             ):
                             print ('found', sbStockNameShort, gloSbSignalBuy)
                             # pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
