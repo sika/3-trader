@@ -16,19 +16,29 @@ from  more_itertools import unique_everseen
 from pprint import pprint
 from pprint import pformat
 
-sPathOutput = "/output/"
-sPathInput = "/input/"
-sPathError = "/errorlog/"
-pathFile = os.path.dirname(os.path.abspath(__file__))
+pathOutput = "/output/"
+pathInput = "/input/"
+pathInputThis = "/input-" + os.path.splitext(os.path.basename(__file__))[0] + '/'
+pathError = "/errorlog/"
+pathFileThis = os.path.dirname(os.path.abspath(__file__))
 
-glo_stockInfo_input_str = 'input-stock-info.csv'
-glo_stockInfo_input_test_str = 'input-stock-info-'
-glo_stockInfo_output_str = 'output-stock-info.csv'
-glo_stockToBuy_output_str = 'stock-to-buy.csv'
-glo_stockInfo_output_noFileEnd_str = 'output-stock-info'
-glo_blacklist_input_str = 'blacklist.csv'
-glo_complimentary_input_str = 'complimentary-list.csv'
+
+# glo_stockInfo_input_test_str = 'input-stock-info-'
+# glo_stockInfo_output_noFileEnd_str = 'output-stock-info'
+glo_stockInfo_file_raw_str = 'stock-info-raw.csv'
+glo_blacklist_file_str = 'blacklist.csv'
+glo_complimentary_file_str = 'nn-complimentary-list.csv'
+glo_stockInfo_file_updated_str = 'stock-info-updated.csv'
+glo_stockToBuy_file_str = 'stock-to-buy.csv'
+
 glo_stockInfo_list = []
+glo_stockInfo_list_str = 'glo_stockInfo_list'
+glo_filteredStockInfo_list = []
+glo_nn_complimentary_list = []
+glo_nn_complimentary_list_str = 'glo_nn_complimentary_list'
+glo_blacklist = []
+glo_blacklist_str = 'glo_blacklist'
+
 glo_sbGeneralUrl_str = 'https://www.swedishbulls.com/SignalPage.aspx?lang=en&Ticker='
 
 glo_stockInfoColName_sbNameshort = 'NAMESHORT_SB'
@@ -59,16 +69,11 @@ glo_stockInfoColName_market_id = 'MARKET_ID'
 glo_stockInfoColName_identifier_id = 'IDENTIFIER_ID'
 glo_stockInfoColName_url_nn = 'URL_NN'
 
-glo_filteredStockInfo_list = []
 glo_costOfBuy = 0.8
 
 glo_stockInfo_value_notAvailable = 'N/A'
 
 glo_iterations_limit = 1000
-
-glo_blacklist = []
-
-glo_complimentary_list = []
 
 gloCredSb = 'credSb'
 gloCredNordnet = 'credNordnet'
@@ -81,17 +86,17 @@ gloSbLoginFormSubmit = 'ctl00$MainContent$btnSubmit'
 def getCredentials(domain):
     try:
         if domain == gloCredNordnet:
-            conf = yaml.load(open(pathFile + sPathInput + 'credentials.yml'))
+            conf = yaml.load(open(pathFileThis + pathInput + 'credentials.yml'))
             username = conf['nordnet']['username']
             pwd = conf['nordnet']['password']
             return {'username': username, 'password': pwd}
         elif domain == gloCredSb:
-            conf = yaml.load(open(pathFile + sPathInput + 'credentials.yml'))
+            conf = yaml.load(open(pathFileThis + pathInput + 'credentials.yml'))
             username = conf['sb']['username']
             pwd = conf['sb']['password']
             return {'username': username, 'pwd': pwd}
         elif domain == gloCredGmailAutotrading:
-            conf = yaml.load(open(pathFile + sPathInput + 'credentials.yml'))
+            conf = yaml.load(open(pathFileThis + pathInput + 'credentials.yml'))
             username = conf['gmail_autotrade']['username']
             pwd = conf['gmail_autotrade']['password']
             return {'username': username, 'pwd': pwd}
@@ -101,36 +106,48 @@ def getCredentials(domain):
 def getDateTodayStr():
     return datetime.date.today().strftime('%Y-%m-%d')
 
-def getStockList():
+def getStockList(name_of_list):
     try:
-        fieldnames = [glo_stockInfoColName_sbNameshort, glo_stockInfoColName_sbName]
-        
+        # fieldnames = [glo_stockInfoColName_sbNameshort, glo_stockInfoColName_sbName]
         # for file in os.listdir('.'):
-        fileNamePath_stock_info_test = ''
-        for file in os.listdir(pathFile + sPathInput): #if test file exist, use that
-            if fnmatch.fnmatch(file, glo_stockInfo_input_test_str+'*'):
-                fileNamePath_stock_info_test = pathFile + sPathInput + file
-        test_file_exists = os.path.isfile(fileNamePath_stock_info_test)
-        fileNamePath_stock_info = pathFile + sPathInput + glo_stockInfo_input_str
-        
-        if test_file_exists:
-            with open (fileNamePath_stock_info_test) as csvFile:
-                records = csv.DictReader(csvFile, fieldnames=fieldnames, delimiter=';') # omitting "fieldnames" - will make file headers fieldnames
-                next(csvFile) #SKIP header
-                for rowDict in records:
-                    order_of_keys = fieldnames
-                    setStockList(getOrderedDictFromDict(rowDict, order_of_keys))
-                temp_glo_stockInfo_list = glo_stockInfo_list
-                return temp_glo_stockInfo_list
-        else: #original file with all stocks
-            with open (fileNamePath_stock_info) as csvFile:
-                records = csv.DictReader(csvFile, fieldnames=fieldnames, delimiter=';') # omitting "fieldnames" - will make file headers fieldnames
-                next(csvFile) #SKIP header
-                for rowDict in records:
-                    order_of_keys = fieldnames
-                    setStockList(getOrderedDictFromDict(rowDict, order_of_keys))
-                temp_glo_stockInfo_list = glo_stockInfo_list
-                return temp_glo_stockInfo_list
+        # fileNamePath_test = ''
+        # for file in os.listdir(pathFileThis + pathInput): #if test file exist, use that
+        #     if fnmatch.fnmatch(file, glo_stockInfo_input_test_str+'*'):
+        #         fileNamePath_test = pathFileThis + pathInput + file
+        # test_file_exists = os.path.isfile(fileNamePath_test)
+        temp_list = []
+        fileNamePath = pathFileThis + pathInputThis + name_of_list
+        with open (fileNamePath) as csvFile:
+            records = csv.DictReader(csvFile, delimiter=';') # omitting "fieldnames" - will make file headers fieldnames
+            fieldnames = records.fieldnames
+            for rowDict in records:
+                order_of_keys = fieldnames
+                temp_list.append(getOrderedDictFromDict(rowDict, order_of_keys))
+                # setStockList(getOrderedDictFromDict(rowDict, order_of_keys))
+            return temp_list
+        # else: #original file with all stocks
+        #     with open (fileNamePath) as csvFile:
+        #         records = csv.DictReader(csvFile, fieldnames=fieldnames, delimiter=';') # omitting "fieldnames" - will make file headers fieldnames
+        #         next(csvFile) #SKIP header
+        #         for rowDict in records:
+        #             order_of_keys = fieldnames
+        #             setStockList(getOrderedDictFromDict(rowDict, order_of_keys))
+        #         temp_glo_stockInfo_list = glo_stockInfo_list
+        #         return temp_glo_stockInfo_list
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+
+def setStockListGlobally(temp_list, name_of_list):
+    try:
+        if name_of_list == glo_stockInfo_list_str:
+            global glo_stockInfo_list
+            glo_stockInfo_list = temp_list
+        elif name_of_list == glo_blacklist_str:
+            global glo_blacklist
+            glo_blacklist = temp_list
+        elif name_of_list == glo_nn_complimentary_list_str:
+            global glo_nn_complimentary_list
+            glo_nn_complimentary_list = temp_list
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
@@ -141,69 +158,82 @@ def setStockList(rowDict):
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
-def updateStockList(dict, sbNameshort):
+# def updateStockList(dict, sbNameshort):
+#     try:
+#         global glo_stockInfo_list
+#         temp_glo_stockInfo_list = glo_stockInfo_list
+#         for row in temp_glo_stockInfo_list:
+#             if row.get(glo_stockInfoColName_sbNameshort) == sbNameshort:
+#                 row.update(dict)
+#                 break
+#         glo_stockInfo_list = temp_glo_stockInfo_list
+#     except Exception as e:
+#         print ("ERROR in", inspect.stack()[0][3], ':', str(e)) 
+
+def updateListFromList(list_to_update, list_to_update_from):
     try:
-        global glo_stockInfo_list
-        temp_glo_stockInfo_list = glo_stockInfo_list
-        for row in temp_glo_stockInfo_list:
-            if row.get(glo_stockInfoColName_sbNameshort) == sbNameshort:
-                row.update(dict)
-                break
-        glo_stockInfo_list = temp_glo_stockInfo_list
+        # global glo_stockInfo_list
+        # temp_glo_stockInfo_list = glo_stockInfo_list
+        for rowTo in list_to_update:
+            for rowFrom in list_to_update_from:
+                if rowTo[glo_stockInfoColName_sbNameshort] == rowFrom[glo_stockInfoColName_sbNameshort]:
+                    print(rowTo[glo_stockInfoColName_sbNameshort])
+                    rowTo.update(rowFrom)
+                    break
+        return list_to_update
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e)) 
 
-def getBlacklist():
-    try:
-        fieldnames = [glo_stockInfoColName_sbNameshort, glo_stockInfoColName_sbName]
-        fileNamePath_blacklist = pathFile + sPathInput + glo_blacklist_input_str
-        with open (fileNamePath_blacklist) as csvFile:
-            records = csv.DictReader(csvFile, fieldnames=fieldnames, delimiter=';') # omitting "fieldnames" - will make file headers fieldnames
-            next(csvFile) #SKIP header
-            for rowDict in records:
-                order_of_keys = fieldnames
-                setBlacklist(getOrderedDictFromDict(rowDict, order_of_keys))
-            temp_glo_blacklist = glo_blacklist
-            return temp_glo_blacklist
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+# def getBlacklist():
+#     try:
+#         fieldnames = [glo_stockInfoColName_sbNameshort, glo_stockInfoColName_sbName]
+#         fileNamePath_blacklist = pathFileThis + pathInput + glo_blacklist_file_str
+#         with open (fileNamePath_blacklist) as csvFile:
+#             records = csv.DictReader(csvFile, fieldnames=fieldnames, delimiter=';') # omitting "fieldnames" - will make file headers fieldnames
+#             next(csvFile) #SKIP header
+#             for rowDict in records:
+#                 order_of_keys = fieldnames
+#                 setBlacklist(getOrderedDictFromDict(rowDict, order_of_keys))
+#             temp_glo_blacklist = glo_blacklist
+#             return temp_glo_blacklist
+#     except Exception as e:
+#         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
-def setBlacklist(rowDict):
-    try:
-        global glo_blacklist
-        glo_blacklist.append(rowDict)
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))  
+# def setBlacklist(rowDict):
+#     try:
+#         global glo_blacklist
+#         glo_blacklist.append(rowDict)
+#     except Exception as e:
+#         print ("ERROR in", inspect.stack()[0][3], ':', str(e))  
 
-def getComplimentaryList():
-    try:
-        # fieldnames = [glo_stockInfoColName_sbNameshort, glo_stockInfoColName_sbName, glo_stockInfoColName_url_nn]
-        fileNamePath_complimentary = pathFile + sPathInput + glo_complimentary_input_str
-        with open (fileNamePath_complimentary) as csvFile:
-            records = csv.DictReader(csvFile, delimiter=';') # omitting "fieldnames" - will make file headers fieldnames
-            fieldnames = records.fieldnames
-            next(csvFile) #SKIP header
-            for rowDict in records:
-                order_of_keys = fieldnames
-                setComplimentaryList(getOrderedDictFromDict(rowDict, order_of_keys))
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+# def getComplimentaryList():
+#     try:
+#         # fieldnames = [glo_stockInfoColName_sbNameshort, glo_stockInfoColName_sbName, glo_stockInfoColName_url_nn]
+#         fileNamePath_complimentary = pathFileThis + pathInput + glo_complimentary_file_str
+#         with open (fileNamePath_complimentary) as csvFile:
+#             records = csv.DictReader(csvFile, delimiter=';') # omitting "fieldnames" - will make file headers fieldnames
+#             fieldnames = records.fieldnames
+#             next(csvFile) #SKIP header
+#             for rowDict in records:
+#                 order_of_keys = fieldnames
+#                 setComplimentaryList(getOrderedDictFromDict(rowDict, order_of_keys))
+#     except Exception as e:
+#         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
-def setComplimentaryList(rowDict):
-    try:
-        global glo_complimentary_list
-        glo_complimentary_list.append(rowDict)
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e)) 
+# def setComplimentaryList(rowDict):
+#     try:
+#         global glo_nn_complimentary_list
+#         glo_nn_complimentary_list.append(rowDict)
+#     except Exception as e:
+#         print ("ERROR in", inspect.stack()[0][3], ':', str(e)) 
 
 def getListFromCsv(name):
     try:
         temp_list = []
-        fileNamePath = pathFile + sPathInput + name
+        fileNamePath = pathFileThis + pathInput + name
         with open (fileNamePath) as csvFile:
             records = csv.DictReader(csvFile, delimiter=';') # omitting "fieldnames" - will make file headers fieldnames
             fieldnames = records.fieldnames
-            next(csvFile) #SKIP header
             for rowDict in records:
                 order_of_keys = fieldnames
                 orderedDict = getOrderedDictFromDict(rowDict, order_of_keys)
@@ -226,7 +256,7 @@ def removeListFromList(listToKeep, listToRemove):
 
 def isComplimentaryStock(sbNameshort):
     try:
-        for item in glo_complimentary_list:
+        for item in glo_nn_complimentary_list:
             if item[glo_stockInfoColName_sbNameshort] == sbNameshort:
                 return True
         return False
@@ -235,7 +265,7 @@ def isComplimentaryStock(sbNameshort):
 
 def getNnUrl(sbNameshort):
     try:
-        for item in glo_complimentary_list:
+        for item in glo_nn_complimentary_list:
             if item[glo_stockInfoColName_sbNameshort] == sbNameshort:
                 return item[glo_stockInfoColName_url_nn]
         return False
@@ -284,42 +314,39 @@ def getOrderedDictFromDict(dictTemp, order_of_keys):
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))     
 
-def writeStockList(listTemp, name):
+def writeStockList(temp_list, name_path_file):
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        if name == glo_stockToBuy_output_str:
-            file_confStat = pathFile + sPathInput + glo_stockToBuy_output_str
-        elif name == glo_stockInfo_output_str:
-            file_confStat = pathFile + sPathOutput + glo_stockInfo_output_str
-        with open (file_confStat, 'w') as csvFile:
+        fileNamePath = pathFileThis + name_path_file
+        with open (fileNamePath, 'w') as csvFile:
             fieldnames = []
             indexWithMaxNumOfKeys = 0
             maxNumOfKeys = 0
             counter = 0
             # get index with most number of keys to get correct fieldnames
-            for dictTemp in listTemp:
+            for dictTemp in temp_list:
                 if len(dictTemp.keys()) > maxNumOfKeys:
                     maxNumOfKeys = len(dictTemp.keys())
                     indexWithMaxNumOfKeys = counter
-                if counter == len(listTemp)-1:
+                if counter == len(temp_list)-1:
                     break
                 else:
                     counter += 1
-            for key in listTemp[indexWithMaxNumOfKeys]:
+            for key in temp_list[indexWithMaxNumOfKeys]:
                 fieldnames.append(key)
             writer = csv.DictWriter(csvFile, fieldnames=fieldnames, delimiter = ';')
             writer.writeheader()
-            for row in listTemp:
+            for row in temp_list:
                 writer.writerow(row)
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
-def getStocksFromSb(temp_glo_stockInfo_list):
+def getStocksFromSb(temp_stockInfo_list):
     print ('\nSTART', inspect.stack()[0][3])
     try:
         counter = 2
         with requests.Session() as s:
-            for row in temp_glo_stockInfo_list:
+            for row in temp_stockInfo_list:
                 if counter > glo_iterations_limit:
                     break
                 sbNameshort = row.get(glo_stockInfoColName_sbNameshort)
@@ -530,19 +557,17 @@ def getStocksFromSb(temp_glo_stockInfo_list):
                 (glo_stockInfoColName_percentChange_highestThroughCurrent, price_highest_through_current),
                 (glo_stockInfoColName_url_sb, url)]
 
-                dictOrdered = OrderedDict(list_of_tuples)
-                updateStockList(dictOrdered, sbNameshort)
-        temp_glo_stockInfo_list = glo_stockInfo_list
-        return temp_glo_stockInfo_list
+                row.update(OrderedDict(list_of_tuples))
+        return temp_stockInfo_list
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
-def getStocksFromNn(temp_glo_stockInfo_list):
+def getStocksFromNn(temp_stockInfo_list):
     print ('\nSTART', inspect.stack()[0][3])
     try:
         counter = 2 
         with requests.Session() as s:
-            for row in temp_glo_stockInfo_list:
+            for row in temp_stockInfo_list:
                 sbNameshort = row.get(glo_stockInfoColName_sbNameshort)
                 if counter > glo_iterations_limit:
                     break
@@ -554,8 +579,8 @@ def getStocksFromNn(temp_glo_stockInfo_list):
                     continue
 
                 # checking complimentary list
-                if isComplimentaryStock(row.get(glo_stockInfoColName_sbNameshort)):
-                    url_stock = getNnUrl(row.get(glo_stockInfoColName_sbNameshort))
+                if row.get(glo_stockInfoColName_url_nn) is not None:
+                    url_stock = row[glo_stockInfoColName_url_nn]
                     result = re.search('identifier=(.*)&', url_stock)
                     identifier_id = result.group(1)
 
@@ -565,9 +590,7 @@ def getStocksFromNn(temp_glo_stockInfo_list):
                     list_of_tuples = [(glo_stockInfoColName_market_id, market_id),
                   (glo_stockInfoColName_identifier_id, identifier_id),
                   (glo_stockInfoColName_url_nn, url_stock)]
-
-                    dictOrdered = OrderedDict(list_of_tuples)
-                    updateStockList(dictOrdered, sbNameshort)
+                    row.update(OrderedDict(list_of_tuples))
                     continue
 
                 sbNameshortList = re.findall(r"[\w']+", sbNameshort)
@@ -628,33 +651,25 @@ def getStocksFromNn(temp_glo_stockInfo_list):
                     list_of_tuples = [(glo_stockInfoColName_market_id, glo_stockInfo_value_notAvailable),
                   (glo_stockInfoColName_identifier_id, glo_stockInfo_value_notAvailable),
                   (glo_stockInfoColName_url_nn, glo_stockInfo_value_notAvailable)]
-
-                    dictOrdered = OrderedDict(list_of_tuples)
-                    updateStockList(dictOrdered, sbNameshort)
+                    row.update(OrderedDict(list_of_tuples))
                     continue                
                 if sbNameshortSplit == nnNameshort:
                     list_of_tuples = [(glo_stockInfoColName_market_id, market_id),
                   (glo_stockInfoColName_identifier_id, identifier_id),
                   (glo_stockInfoColName_url_nn, url_stock)]
-
-                    dictOrdered = OrderedDict(list_of_tuples)
-                    updateStockList(dictOrdered, sbNameshort)
+                    row.update(OrderedDict(list_of_tuples))
                 else:
                     list_of_tuples = [(glo_stockInfoColName_market_id, glo_stockInfo_value_notAvailable),
                   (glo_stockInfoColName_identifier_id, glo_stockInfo_value_notAvailable),
                   (glo_stockInfoColName_url_nn, glo_stockInfo_value_notAvailable)]
-
-                    dictOrdered = OrderedDict(list_of_tuples)
-                    updateStockList(dictOrdered, sbNameshort)
-                    # updateStockList(nn_info_dict, sbNameshort)
-        temp_glo_stockInfo_list = glo_stockInfo_list
-        return temp_glo_stockInfo_list
+                    row.update(OrderedDict(list_of_tuples))
+        return temp_stockInfo_list
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
 def getStockListFromFile():
     try:
-        file_all_stocks = pathFile + sPathOutput + glo_stockInfo_output_str
+        file_all_stocks = pathFileThis + pathOutput + glo_stockInfo_file_updated_str
         fieldname_list = []
         file_exists = os.path.isfile(file_all_stocks)
         if file_exists:
@@ -871,27 +886,45 @@ def sbLogin():
         return (browser)
 
 start = time.time()
+# temp_stockInfo_list = getStockList(glo_stockInfo_file_raw_str)
+temp_stockInfo_list = getStockList('stock-info-raw-4.csv')
+setStockListGlobally(temp_stockInfo_list, glo_stockInfo_list_str)
+print('temp_stockInfo_list:', len(temp_stockInfo_list))
 
-# temp_glo_stockInfo_list = getStockList()
-# temp_glo_blacklist = getBlacklist()
+temp_blacklist = getStockList(glo_blacklist_file_str)
+setStockListGlobally(temp_blacklist, glo_blacklist_str)
+print('temp_blacklist:', len(temp_blacklist))
 
-# temp_glo_stockInfo_list = removeListFromList(temp_glo_stockInfo_list, temp_glo_blacklist)
+temp_stockInfo_list = removeListFromList(temp_stockInfo_list, temp_blacklist)
+print('temp_stockInfo_list:', len(temp_stockInfo_list))
 
 # getComplimentaryList()
+temp_complimentary_list = getStockList(glo_complimentary_file_str)
+setStockListGlobally(temp_complimentary_list, glo_nn_complimentary_list_str)
+print('temp_complimentary_list:', len(temp_complimentary_list))
 
-# temp_glo_stockInfo_list = getStocksFromSb(temp_glo_stockInfo_list)
+temp_stockInfo_list = getStocksFromSb(temp_stockInfo_list)
+print('temp_stockInfo_list:', len(temp_stockInfo_list))
 
-# temp_glo_stockInfo_list = getStocksFromNn(temp_glo_stockInfo_list)
+temp_stockInfo_list = updateListFromList(temp_stockInfo_list, temp_complimentary_list) # list to update, list to update from
 
-# writeStockList(temp_glo_stockInfo_list, glo_stockInfo_output_str)
+temp_stockInfo_list = getStocksFromNn(temp_stockInfo_list)
+
+writeStockList(temp_stockInfo_list, pathInputThis+glo_stockInfo_file_updated_str)
+writeStockList(temp_stockInfo_list, pathOutput+glo_stockInfo_file_updated_str)
 
 # time.sleep(5)
+
+CONTINUE BELOW
+
 # stockToBuy_list = filterStocksToWatch()
-# writeStockList(stockToBuy_list, glo_stockToBuy_output_str)
+pass
+BP()
+# writeStockList(stockToBuy_list, glo_stockToBuy_file_str)
 
 # clearSbWatchlist()
-stockToBuy_list = getListFromCsv(glo_stockToBuy_output_str)
-setSbWatchlist(stockToBuy_list)
+# stockToBuy_list = getListFromCsv(glo_stockToBuy_file_str)
+# setSbWatchlist(stockToBuy_list)
 
 end = time.time()
 timeElapsed = datetime.timedelta(seconds=(end - start))
