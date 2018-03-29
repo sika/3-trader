@@ -48,8 +48,8 @@ gloStatus_Key_Held = 'HELD'
 gloStatus_Key_Active = 'ACTIVE'
 gloStatus_Key_ActiveTemp = 'ACTIVE_TEMP'
 gloStatus_Key_MarketId = 'MARKET_ID'
-gloStatus_Key_Identifier = 'IDENTIFIER_ID   '
-gloStatus_Key_UrlNordnet = 'URL_NORDNET'
+gloStatus_Key_Identifier = 'IDENTIFIER_ID'
+gloStatus_Key_UrlNordnet = 'URL_NN'
 gloStatus_Key_StocksAmountHeld = 'AMOUNT_HELD'
 gloStatus_Key_Price = 'PRICE'
 gloStatus_Key_PriceTemp = 'PRICE_TEMP'
@@ -1041,7 +1041,6 @@ def nordnetPlaceOrder(sbStockNameShort, sbSignalType): #sbSignalType = BUY or SE
     try:
         print('nordnet login\n')        
         r, header, s = nordnetLogin() # login to nordnet
-
         # nordnet price
         orderNnValuePrice = getNnStockPrice(sbStockNameShort, sbSignalType, s)
         payloadOrder = getPayloadOrderValues(sbStockNameShort, sbSignalType, orderNnValuePrice)
@@ -1298,8 +1297,6 @@ setMaxNumberOfActiveAboveMaxHeld(2)
 setAmountAvailableStatic(140)
 initStockStatus()
 setStockStatus()
-# sbGetSignal()
-# sbGetSignal_afterMarketHours()
 while True:
     schedule.run_pending()
     if isMarketOpenNow():

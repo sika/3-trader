@@ -36,3 +36,21 @@ DATE;TIME;DAY;ERROR_COUNTER;E_MSG;CALLING_FUNCTION
 2018-03-21;10:12;Wednesday;1;;sbGetSignal
 2018-03-21;10:15;Wednesday;1;;sbGetSignal
 2018-03-21;15:16;Wednesday;1;;sbGetSignal
+2018-03-29;12:15;Thursday;1;Invalid URL 'None': No schema supplied. Perhaps you meant http://None?;getNnStockPrice
+2018-03-29;12:15;Thursday;2;float() argument must be a string or a number, not 'NoneType';getNnStockVolume
+2018-03-29;12:15;Thursday;3;"{'reason': 'Bad Request',
+ 'status_code': '400',
+ 'url': 'https://www.nordnet.se/api/2/accounts/18272500/orders'}";nordnetPlaceOrder
+2018-03-29;12:17;Thursday;4;Invalid URL 'None': No schema supplied. Perhaps you meant http://None?;getNnStockPrice
+2018-03-29;12:17;Thursday;5;float() argument must be a string or a number, not 'NoneType';getNnStockVolume
+2018-03-29;12:18;Thursday;1;Invalid URL 'None': No schema supplied. Perhaps you meant http://None?;getNnStockPrice
+2018-03-29;12:18;Thursday;2;float() argument must be a string or a number, not 'NoneType';getNnStockVolume
+2018-03-29;12:18;Thursday;3;"{'reason': 'Bad Request',
+ 'status_code': '400',
+ 'url': 'https://www.nordnet.se/api/2/accounts/18272500/orders'}";nordnetPlaceOrder
+2018-03-29;12:27;Thursday;1;;getNnStockPrice
+2018-03-29;12:27;Thursday;2;float() argument must be a string or a number, not 'NoneType';getNnStockVolume
+2018-03-29;12:27;Thursday;3;;nordnetPlaceOrder
+2018-03-29;12:31;Thursday;1;"{'reason': 'Bad Request',
+ 'status_code': '400',
+ 'url': 'https://www.nordnet.se/api/2/accounts/18272500/orders'}";nordnetPlaceOrder
