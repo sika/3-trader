@@ -181,7 +181,6 @@ def updateListFromList(list_to_update, list_to_update_from):
         for rowTo in list_to_update:
             for rowFrom in list_to_update_from:
                 if rowTo[glo_stockInfoColName_sbNameshort] == rowFrom[glo_stockInfoColName_sbNameshort]:
-                    print(rowTo[glo_stockInfoColName_sbNameshort])
                     rowTo.update(rowFrom)
                     break
         return list_to_update
@@ -899,8 +898,8 @@ def sbLogin():
         return (browser)
 
 start = time.time()
-temp_stockInfo_list = getStockList(glo_stockInfo_file_raw_str)
-# temp_stockInfo_list = getStockList('stock-info-raw-4.csv')
+# temp_stockInfo_list = getStockList(glo_stockInfo_file_raw_str)
+temp_stockInfo_list = getStockList('stock-info-raw-5.csv')
 setStockListGlobally(temp_stockInfo_list, glo_stockInfo_list_str)
 print('temp_stockInfo_list:', len(temp_stockInfo_list))
 
