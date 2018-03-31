@@ -44,6 +44,7 @@ gloCredGmailAutotrading = 'credGmailAutotrading'
 gloStockStatusList = []
 gloStatus_Key_NameShortSb = 'NAMESHORT_SB'
 gloStatus_Key_NameNordnet = 'NAME_NORDNET'
+gloStatus_Key_NameShortNordnet = 'NAMESHORT_NORDNET'
 gloStatus_Key_Held = 'HELD'
 gloStatus_Key_Active = 'ACTIVE'
 gloStatus_Key_ActiveTemp = 'ACTIVE_TEMP'
@@ -612,10 +613,13 @@ def getSbNameShortByNnName(nnStockName):
         for row in gloStockStatusList:
             if row.get(gloStatus_Key_NameNordnet) == nnStockName:
                 return row.get(gloStatus_Key_NameShortSb)
-        print ('could not match', nnStockName, 'with', gloStatus_Key_NameShortSb)
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
+    else:
+        msg = 'could not match', nnStockName, 'with', gloStatus_Key_NameShortSb
+        print (msg)
+        writeErrorLog(inspect.stack()[0][3], msg)
 
 def isMaxStockHeldAndActive():
     try:

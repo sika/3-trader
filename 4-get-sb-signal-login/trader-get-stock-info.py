@@ -43,6 +43,8 @@ glo_sbGeneralUrl_str = 'https://www.swedishbulls.com/SignalPage.aspx?lang=en&Tic
 
 glo_stockInfoColName_sbNameshort = 'NAMESHORT_SB'
 glo_stockInfoColName_sbName = 'NAME_SB'
+glo_stockInfoColName_NameNordnet = 'NAME_NORDNET'
+glo_stockInfoColName_NameShortNordnet = 'NAMESHORT_NORDNET'
 glo_stockInfoColName_price = 'PRICE'
 glo_stockInfoColName_6_percent = 'MONTH_6_PERCENT_CORRECT'
 glo_stockInfoColName_6_value = 'MONTH_6_VALUE'
@@ -69,6 +71,8 @@ glo_stockInfoColName_market_id = 'MARKET_ID'
 glo_stockInfoColName_identifier_id = 'IDENTIFIER_ID'
 glo_stockInfoColName_url_nn = 'URL_NN'
 
+glo_complimentary_colName_compList = 'COMPLIMENTARY_LIST'
+
 glo_costOfBuy = 0.8
 
 glo_stockInfo_value_notAvailable = 'N/A'
@@ -83,25 +87,25 @@ gloSbLoginFormUser = 'ctl00$MainContent$uEmail'
 gloSbLoginFormPass = 'ctl00$MainContent$uPassword'
 gloSbLoginFormSubmit = 'ctl00$MainContent$btnSubmit'
 
-def getCredentials(domain):
-    try:
-        if domain == gloCredNordnet:
-            conf = yaml.load(open(pathFileThis + pathInput + 'credentials.yml'))
-            username = conf['nordnet']['username']
-            pwd = conf['nordnet']['password']
-            return {'username': username, 'password': pwd}
-        elif domain == gloCredSb:
-            conf = yaml.load(open(pathFileThis + pathInput + 'credentials.yml'))
-            username = conf['sb']['username']
-            pwd = conf['sb']['password']
-            return {'username': username, 'pwd': pwd}
-        elif domain == gloCredGmailAutotrading:
-            conf = yaml.load(open(pathFileThis + pathInput + 'credentials.yml'))
-            username = conf['gmail_autotrade']['username']
-            pwd = conf['gmail_autotrade']['password']
-            return {'username': username, 'pwd': pwd}
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+# def getCredentials(domain):
+#     try:
+#         if domain == gloCredNordnet:
+#             conf = yaml.load(open(pathFileThis + pathInput + 'credentials.yml'))
+#             username = conf['nordnet']['username']
+#             pwd = conf['nordnet']['password']
+#             return {'username': username, 'password': pwd}
+#         elif domain == gloCredSb:
+#             conf = yaml.load(open(pathFileThis + pathInput + 'credentials.yml'))
+#             username = conf['sb']['username']
+#             pwd = conf['sb']['password']
+#             return {'username': username, 'pwd': pwd}
+#         elif domain == gloCredGmailAutotrading:
+#             conf = yaml.load(open(pathFileThis + pathInput + 'credentials.yml'))
+#             username = conf['gmail_autotrade']['username']
+#             pwd = conf['gmail_autotrade']['password']
+#             return {'username': username, 'pwd': pwd}
+#     except Exception as e:
+#         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
 def getDateTodayStr():
     return datetime.date.today().strftime('%Y-%m-%d')
@@ -311,6 +315,36 @@ def getOrderedDictFromDict(dictTemp, order_of_keys):
     try:
         list_of_tuples = [(key, dictTemp[key]) for key in order_of_keys]
         return OrderedDict(list_of_tuples)
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))     
+
+def getNnStockPageData(url_stock, s):
+    try:
+        result = re.search('identifier=(.*)&', url_stock)
+        identifier_id = result.group(1)
+        result = re.search('marketid=(.*)', url_stock)
+        market_id = result.group(1)
+
+        # get name
+        r = s.get(url_stock)
+        if r.status_code != 200:
+            print('something when wrong in URL request:', r.status_code)
+            print('URL:', url_stock)
+        soup = BeautifulSoup(r.content, 'html.parser')
+
+        stock_heading_sentence = soup.find('h1', class_="title").get_text(strip=True)
+        # get nordnet name
+        nnName = re.search(r'Kursdata för (.*?) \(', stock_heading_sentence).group(1)
+        # get nordnet shortname
+        nnNameshort = re.search(r'\((.*?)\)',stock_heading_sentence).group(1)
+
+        list_of_tuples = [(glo_stockInfoColName_NameNordnet, nnName),
+        (glo_stockInfoColName_NameShortNordnet, nnNameshort),
+        (glo_stockInfoColName_market_id, market_id),
+        (glo_stockInfoColName_identifier_id, identifier_id),
+        (glo_stockInfoColName_url_nn, url_stock)]
+
+        return list_of_tuples
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))     
 
@@ -579,17 +613,9 @@ def getStocksFromNn(temp_stockInfo_list):
                     continue
 
                 # checking complimentary list
-                if row.get(glo_stockInfoColName_url_nn) is not None:
+                if row.get(glo_complimentary_colName_compList) is not None:
                     url_stock = row[glo_stockInfoColName_url_nn]
-                    result = re.search('identifier=(.*)&', url_stock)
-                    identifier_id = result.group(1)
-
-                    result = re.search('marketid=(.*)', url_stock)
-                    market_id = result.group(1)
-
-                    list_of_tuples = [(glo_stockInfoColName_market_id, market_id),
-                  (glo_stockInfoColName_identifier_id, identifier_id),
-                  (glo_stockInfoColName_url_nn, url_stock)]
+                    list_of_tuples = getNnStockPageData(url_stock, s)
                     row.update(OrderedDict(list_of_tuples))
                     continue
 
@@ -615,54 +641,41 @@ def getStocksFromNn(temp_stockInfo_list):
                 'query': query,
                 'type': 'instrument'
                 }
-
                 # Initial stock search
                 r = s.post('https://www.nordnet.se/search/load.html', data=payload)
                 if r.status_code != 200:
                     print('something when wrong in URL request:', r.status_code)
                     print('URL:', urlNnSearch)
                 soup = BeautifulSoup(r.content, 'html.parser')
-                nnNameshort = ''
                 try: #checking 3 top results in search result list
-                    urlNnStock_rel = soup.find(id=re.compile('search-results-container')).a['href'] # first href (relative), such as '/mux/web/marknaden/aktiehemsidan/index.html?identifier=1007&marketid=11'
+                    # urlNnStock_rel = soup.find(id=re.compile('search-results-container')).a['href'] # first href (relative), such as '/mux/web/marknaden/aktiehemsidan/index.html?identifier=1007&marketid=11'
                     urlNnStock_rel_list = soup.find(id=re.compile('search-results-container')).find_all('div', class_='instrument-name') # all divs (containing a tags) in search result
                     if urlNnStock_rel_list: # if list not empty
                         for i in range(0,2):
-                            # get IDs
-                            result = re.search('identifier=(.*)&', urlNnStock_rel_list[i].a['href'])
-                            identifier_id = result.group(1)
-
-                            result = re.search('marketid=(.*)', urlNnStock_rel_list[i].a['href'])
-                            market_id = result.group(1)
-
-                            # getting and going to first stock in result
                             url_stock = urlNn + urlNnStock_rel_list[i].a['href']
-                            r = s.get(url_stock)
-                            if r.status_code != 200:
-                                print('something when wrong in URL request:', r.status_code)
-                                print('URL:', url_stock)
-                            soup = BeautifulSoup(r.content, 'html.parser')
-                            stock_heading_sentence = soup.find('h1', class_="title").get_text(strip=True)
-                            nnNameshort = re.search(r'\((.*?)\)',stock_heading_sentence).group(1)
-                            if nnNameshort == sbNameshortSplit:
+                            list_of_tuples = getNnStockPageData(url_stock, s)
+                            dict_temp = dict(list_of_tuples)
+                            if dict_temp.get(glo_stockInfoColName_NameShortNordnet) == sbNameshortSplit:
+                                row.update(OrderedDict(list_of_tuples))
                                 break
                 except Exception as e:
                     print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+                    BP()
                     list_of_tuples = [(glo_stockInfoColName_market_id, glo_stockInfo_value_notAvailable),
                   (glo_stockInfoColName_identifier_id, glo_stockInfo_value_notAvailable),
                   (glo_stockInfoColName_url_nn, glo_stockInfo_value_notAvailable)]
                     row.update(OrderedDict(list_of_tuples))
                     continue                
-                if sbNameshortSplit == nnNameshort:
-                    list_of_tuples = [(glo_stockInfoColName_market_id, market_id),
-                  (glo_stockInfoColName_identifier_id, identifier_id),
-                  (glo_stockInfoColName_url_nn, url_stock)]
-                    row.update(OrderedDict(list_of_tuples))
-                else:
-                    list_of_tuples = [(glo_stockInfoColName_market_id, glo_stockInfo_value_notAvailable),
-                  (glo_stockInfoColName_identifier_id, glo_stockInfo_value_notAvailable),
-                  (glo_stockInfoColName_url_nn, glo_stockInfo_value_notAvailable)]
-                    row.update(OrderedDict(list_of_tuples))
+                # if sbNameshortSplit == nnNameshort:
+                #     list_of_tuples = [(glo_stockInfoColName_market_id, market_id),
+                #   (glo_stockInfoColName_identifier_id, identifier_id),
+                #   (glo_stockInfoColName_url_nn, url_stock)]
+                #     row.update(OrderedDict(list_of_tuples))
+                # else:
+                #     list_of_tuples = [(glo_stockInfoColName_market_id, glo_stockInfo_value_notAvailable),
+                #   (glo_stockInfoColName_identifier_id, glo_stockInfo_value_notAvailable),
+                #   (glo_stockInfoColName_url_nn, glo_stockInfo_value_notAvailable)]
+                    # row.update(OrderedDict(list_of_tuples))
         return temp_stockInfo_list
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
@@ -886,8 +899,8 @@ def sbLogin():
         return (browser)
 
 start = time.time()
-# temp_stockInfo_list = getStockList(glo_stockInfo_file_raw_str)
-temp_stockInfo_list = getStockList('stock-info-raw-4.csv')
+temp_stockInfo_list = getStockList(glo_stockInfo_file_raw_str)
+# temp_stockInfo_list = getStockList('stock-info-raw-4.csv')
 setStockListGlobally(temp_stockInfo_list, glo_stockInfo_list_str)
 print('temp_stockInfo_list:', len(temp_stockInfo_list))
 
@@ -902,6 +915,7 @@ print('temp_stockInfo_list:', len(temp_stockInfo_list))
 temp_complimentary_list = getStockList(glo_complimentary_file_str)
 setStockListGlobally(temp_complimentary_list, glo_nn_complimentary_list_str)
 print('temp_complimentary_list:', len(temp_complimentary_list))
+# temp_complimentary_list = updateComplimentaryList(temp_complimentary_list)
 
 temp_stockInfo_list = getStocksFromSb(temp_stockInfo_list)
 print('temp_stockInfo_list:', len(temp_stockInfo_list))
@@ -911,15 +925,13 @@ temp_stockInfo_list = updateListFromList(temp_stockInfo_list, temp_complimentary
 temp_stockInfo_list = getStocksFromNn(temp_stockInfo_list)
 
 writeStockList(temp_stockInfo_list, pathInputThis+glo_stockInfo_file_updated_str)
-writeStockList(temp_stockInfo_list, pathOutput+glo_stockInfo_file_updated_str)
+# writeStockList(temp_stockInfo_list, pathOutput+glo_stockInfo_file_updated_str)
 
 # time.sleep(5)
 
-CONTINUE BELOW
-
 # stockToBuy_list = filterStocksToWatch()
-pass
-BP()
+# pass
+# BP()
 # writeStockList(stockToBuy_list, glo_stockToBuy_file_str)
 
 # clearSbWatchlist()
