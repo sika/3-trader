@@ -1,0 +1,2 @@
+pathOutput = "/output/"
+pathInput = "/input/"

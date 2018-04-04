@@ -36,3 +36,7 @@ DATE;TIME;DAY;ERROR_COUNTER;E_MSG;CALLING_FUNCTION
 2018-03-21;10:12;Wednesday;1;;sbGetSignal
 2018-03-21;10:15;Wednesday;1;;sbGetSignal
 2018-03-21;15:16;Wednesday;1;;sbGetSignal
+2018-04-02;21:21;Monday;1;[Errno 2] No such file or directory: '/mnt/e/Dokument/Dropbox/Development/nordnet-api-00/python/3-trader/4-get-sb-signal-login/input/stock-to-buy.csv';initStockStatus
+2018-04-02;21:21;Monday;2;('could not match', 'MediRätt AB', 'with', 'NAMESHORT_SB');getSbNameShortByNnName
+2018-04-02;21:21;Monday;3;('could not match', 'MediRätt AB', 'with', 'NAMESHORT_SB');getSbNameShortByNnName
+2018-04-02;21:21;Monday;4;('could not match', 'Dividend Sweden B', 'with', 'NAMESHORT_SB');getSbNameShortByNnName
