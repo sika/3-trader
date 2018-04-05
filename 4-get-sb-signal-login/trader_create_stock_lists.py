@@ -1,34 +1,25 @@
 import trader_shared as mod_shared
 from pdb import set_trace as BP
-import inspect
 import os
+import inspect
 import csv
-import requests
-import re
-import datetime
-import time
-import fnmatch
-import yaml
-from robobrowser import RoboBrowser
-from bs4 import BeautifulSoup
-from statistics import median
 from collections import OrderedDict
+import requests
+from bs4 import BeautifulSoup
+import re
+from statistics import median
 from  more_itertools import unique_everseen
 from pprint import pprint
 from pprint import pformat
 
-# pathOutput = "/output/"
-# pathInput = "/input/"
-pathInput_main = "/input-trader-main/"
-pathInputThis = "/input-" + os.path.splitext(os.path.basename(__file__))[0] + '/'
-pathError = "/errorlog/"
+pathInputThis = "/input_" + os.path.splitext(os.path.basename(__file__))[0] + '/'
 pathFileThis = os.path.dirname(os.path.abspath(__file__))
+fileName = os.path.basename(__file__)
 
 glo_stockInfo_file_raw_str = 'stock-info-raw.csv'
 glo_blacklist_file_str = 'blacklist.csv'
 glo_complimentary_file_str = 'nn-complimentary-list.csv'
 glo_stockInfo_file_updated_str = 'stock-info-updated.csv'
-glo_stockToBuy_file_str = 'stock-to-buy.csv'
 glo_stockToBuy_allData_file_str = 'stock-to-buy-all-data.csv'
 
 glo_stockInfo_list = []
@@ -39,68 +30,39 @@ glo_nn_complimentary_list_str = 'glo_nn_complimentary_list'
 glo_blacklist = []
 glo_blacklist_str = 'glo_blacklist'
 
-glo_sbGeneralUrl_str = 'https://www.swedishbulls.com/SignalPage.aspx?lang=en&Ticker='
-
-glo_stockInfoColName_sbNameshort = 'NAMESHORT_SB'
-glo_stockInfoColName_sbName = 'NAME_SB'
-glo_stockInfoColName_NameNordnet = 'NAME_NORDNET'
-glo_stockInfoColName_NameShortNordnet = 'NAMESHORT_NORDNET'
-glo_stockInfoColName_price = 'PRICE'
-glo_stockInfoColName_6_percent = 'MONTH_6_PERCENT_CORRECT'
-glo_stockInfoColName_6_value = 'MONTH_6_VALUE'
-glo_stockInfoColName_12_percent = 'MONTH_12_PERCENT_CORRECT'
-glo_stockInfoColName_12_value = 'MONTH_12_VALUE'
-glo_stockInfoColName_24_percent = 'MONTH_24_PERCENT_CORRECT'
-glo_stockInfoColName_24_value = 'MONTH_24_VALUE'
-glo_stockInfoColName_percentAverage = 'AVERAGE_PERCENT_CORRECT'
-glo_stockInfoColName_valueAverage = 'AVERAGE_VALUE'
-glo_stockInfoColName_24_buys_correct_percent = 'BUYS_24_PERCENT_CORRECT'
-glo_stockInfoColName_buysTotal = 'BUYS_TOTAL'
-glo_stockInfoColName_pricePercentChange_average = 'PRICE_CHANGE_PERCENT_AVERAGE'
-glo_stockInfoColName_pricePercentChange_median = 'PRICE_CHANGE_PERCENT_MEDIAN'
-glo_stockInfoColName_buyAverageFailedPerChange = 'BUY_AVERAGE_FAILED_PER_CHANGE'
-glo_stockInfoColName_buyAverageSuccessPerChange = 'BUY_AVERAGE_SUCCESS_PER_CHANGE'
-glo_stockInfoColName_buyMedianFailedPerChange = 'BUY_MEDIAN_FAILED_PER_CHANGE'
-glo_stockInfoColName_buyMedianSuccessPerChange = 'BUY_MEDIAN_SUCCESS_PER_CHANGE'
-glo_stockInfoColName_buyAndFailMedian_keyValue = 'BUYANDFAIL_MEDIAN_KEYVALUE'
-glo_stockInfoColName_buyAndFailAverage_keyValue = 'BUYANDFAIL_AVERAGE_KEYVALUE'
-glo_stockInfoColName_percentChange_highestThroughCurrent = 'PER_CHANGE_HIGHEST_THROUGH_CURRENT'
-glo_stockInfoColName_stockToBuy_group = 'GROUP_BUY'
-glo_stockInfoColName_url_sb = 'URL_SB'
-glo_stockInfoColName_market_id = 'MARKET_ID'
-glo_stockInfoColName_identifier_id = 'IDENTIFIER_ID'
-glo_stockInfoColName_url_nn = 'URL_NN'
-
-glo_complimentary_colName_compList = 'COMPLIMENTARY_LIST'
-
-
-# gloStatus_Key_Held = 'HELD'
-# gloStatus_Key_Active = 'ACTIVE'
-# gloStatus_Key_ActiveTemp = 'ACTIVE_TEMP'
-# gloStatus_Key_StocksAmountHeld = 'AMOUNT_HELD'
-# gloStatus_Key_Price = 'PRICE'
-# gloStatus_Key_PriceTemp = 'PRICE_TEMP'
-
-glo_traderScript_colName_held = 'HELD'
-glo_traderScript_colName_active = 'ACTIVE'
-glo_traderScript_colName_activeTemp = 'ACTIVE_TEMP'
-glo_traderScript_colName_amountHeld = 'AMOUNT_HELD'
-glo_traderScript_colName_price = 'PRICE'
-glo_traderScript_colName_priceTemp = 'PRICE_TEMP'
-
-glo_costOfBuy = 0.8
-
-glo_stockInfo_value_notAvailable = 'N/A'
-
-glo_iterations_limit = 1000
-
-gloCredSb = 'credSb'
-gloCredNordnet = 'credNordnet'
-gloCredGmailAutotrading = 'credGmailAutotrading'
+glo_colName_6_percent = 'MONTH_6_PERCENT_CORRECT'
+glo_colName_6_value = 'MONTH_6_VALUE'
+glo_colName_12_percent = 'MONTH_12_PERCENT_CORRECT'
+glo_colName_12_value = 'MONTH_12_VALUE'
+glo_colName_24_percent = 'MONTH_24_PERCENT_CORRECT'
+glo_colName_24_value = 'MONTH_24_VALUE'
+glo_colName_percentAverage = 'AVERAGE_PERCENT_CORRECT'
+glo_colName_valueAverage = 'AVERAGE_VALUE'
+glo_colName_24_buys_correct_percent = 'BUYS_24_PERCENT_CORRECT'
+glo_colName_buysTotal = 'BUYS_TOTAL'
+glo_colName_pricePercentChange_average = 'PRICE_CHANGE_PERCENT_AVERAGE'
+glo_colName_pricePercentChange_median = 'PRICE_CHANGE_PERCENT_MEDIAN'
+glo_colName_buyAverageFailedPerChange = 'BUY_AVERAGE_FAILED_PER_CHANGE'
+glo_colName_buyAverageSuccessPerChange = 'BUY_AVERAGE_SUCCESS_PER_CHANGE'
+glo_colName_buyMedianFailedPerChange = 'BUY_MEDIAN_FAILED_PER_CHANGE'
+glo_colName_buyMedianSuccessPerChange = 'BUY_MEDIAN_SUCCESS_PER_CHANGE'
+glo_colName_buyAndFailMedian_keyValue = 'BUYANDFAIL_MEDIAN_KEYVALUE'
+glo_colName_buyAndFailAverage_keyValue = 'BUYANDFAIL_AVERAGE_KEYVALUE'
+glo_colName_percentChange_highestThroughCurrent = 'PER_CHANGE_HIGHEST_THROUGH_CURRENT'
+glo_colName_stockToBuy_group = 'GROUP_BUY'
+glo_colName_compList = 'COMPLIMENTARY_LIST'
 
 gloSbLoginFormUser = 'ctl00$MainContent$uEmail'
 gloSbLoginFormPass = 'ctl00$MainContent$uPassword'
 gloSbLoginFormSubmit = 'ctl00$MainContent$btnSubmit'
+
+glo_sbGeneralUrl_str = 'https://www.swedishbulls.com/SignalPage.aspx?lang=en&Ticker='
+
+glo_costOfBuy = 0.8
+
+glo_colValue_notAvailable = 'N/A'
+
+glo_iterations_limit = 1000
 
 def getStockList(name_of_list_and_path):
     try:
@@ -136,7 +98,7 @@ def updateListFromList(list_to_update, list_to_update_from):
         # temp_glo_stockInfo_list = glo_stockInfo_list
         for rowTo in list_to_update:
             for rowFrom in list_to_update_from:
-                if rowTo[glo_stockInfoColName_sbNameshort] == rowFrom[glo_stockInfoColName_sbNameshort]:
+                if rowTo[mod_shared.glo_colName_sbNameshort] == rowFrom[mod_shared.glo_colName_sbNameshort]:
                     rowTo.update(rowFrom)
                     break
         return list_to_update
@@ -148,7 +110,7 @@ def removeListFromList(listToKeep, listToRemove):
         new_list = list(listToKeep) # create new list rathen than assigning reference
         for itemToKeep in listToKeep:
             for itemToRemove in listToRemove:
-                if itemToKeep[glo_stockInfoColName_sbNameshort] == itemToRemove[glo_stockInfoColName_sbNameshort]:
+                if itemToKeep[mod_shared.glo_colName_sbNameshort] == itemToRemove[mod_shared.glo_colName_sbNameshort]:
                     new_list.remove(itemToKeep)
                     break
         return new_list
@@ -165,22 +127,22 @@ def setFilteredStockList(rowDict):
 def filterFilteredStockInfo(column_key, criteria, temp_glo_filteredStockInfo_list):
     try:
         temp_list= []
-        if column_key == glo_stockInfoColName_buysTotal: #total buys
+        if column_key == glo_colName_buysTotal: #total buys
             for row in temp_glo_filteredStockInfo_list:
                 if row.get(column_key) != '':
                     if row.get(column_key) >= criteria:
                         temp_list.append(row)
-        elif column_key == glo_stockInfoColName_24_buys_correct_percent: # percent correct buys
+        elif column_key == glo_colName_24_buys_correct_percent: # percent correct buys
             for row in temp_glo_filteredStockInfo_list:
                 if row.get(column_key) != '':
                     if row.get(column_key) >= criteria:
                         temp_list.append(row)
-        elif column_key == glo_stockInfoColName_buyAndFailMedian_keyValue: # percent correct buys
+        elif column_key == glo_colName_buyAndFailMedian_keyValue: # percent correct buys
             for row in temp_glo_filteredStockInfo_list:
                 if row.get(column_key) != '':
                     if row.get(column_key) >= criteria:
                         temp_list.append(row)
-        elif column_key == glo_stockInfoColName_buyAndFailAverage_keyValue: # percent correct buys
+        elif column_key == glo_colName_buyAndFailAverage_keyValue: # percent correct buys
             for row in temp_glo_filteredStockInfo_list:
                 if row.get(column_key) != '':
                     # if row.get(column_key) >= criteria:
@@ -217,18 +179,17 @@ def getNnStockPageData(url_stock, s):
         # get nordnet shortname
         nnNameshort = re.search(r'\((.*?)\)',stock_heading_sentence).group(1)
 
-        list_of_tuples = [(glo_stockInfoColName_NameNordnet, nnName),
-        (glo_stockInfoColName_NameShortNordnet, nnNameshort),
-        (glo_stockInfoColName_market_id, market_id),
-        (glo_stockInfoColName_identifier_id, identifier_id),
-        (glo_stockInfoColName_url_nn, url_stock)]
+        list_of_tuples = [(mod_shared.glo_colName_NameNordnet, nnName),
+        (mod_shared.glo_colName_NameShortNordnet, nnNameshort),
+        (mod_shared.glo_colName_market_id, market_id),
+        (mod_shared.glo_colName_identifier_id, identifier_id),
+        (mod_shared.glo_colName_url_nn, url_stock)]
 
         return list_of_tuples
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))     
 
 def writeStockList(temp_list, name_path_file):
-    print ('\nSTART', inspect.stack()[0][3])
     try:
         fileNamePath = pathFileThis + name_path_file
         with open (fileNamePath, 'w', encoding='ISO-8859-1') as csvFile:
@@ -262,7 +223,7 @@ def getStocksFromSb(temp_stockInfo_list):
             for row in temp_stockInfo_list:
                 if counter > glo_iterations_limit:
                     break
-                sbNameshort = row.get(glo_stockInfoColName_sbNameshort)
+                sbNameshort = row.get(mod_shared.glo_colName_sbNameshort)
                 print (counter, ':' ,sbNameshort)
                 counter += 1
                 url_postfix = sbNameshort
@@ -276,13 +237,7 @@ def getStocksFromSb(temp_stockInfo_list):
                     print('NOT FOUND, skipping:', r.url)
                     continue
                 soup = BeautifulSoup(r.content, 'html.parser')
-                print(s.headers)
-                BP()
-                headers = {'Content-Encoding': 'gzip',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'}
-                s.headers = {**s.headers, **headers}
-                # s.headers = headers
-                pprint(s.headers)
+
                 # break if stock's last signal is QUIT
                 rows_months_24 = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory24_DXDataRow"))
                 array_length_24 = len(rows_months_24)
@@ -418,7 +373,6 @@ def getStocksFromSb(temp_stockInfo_list):
                 median_buyAndFail_keyValue_cost08Percent = round(((median_buy_success_per_change - glo_costOfBuy)*buys_correct_decimal_24) - ((abs(median_buy_failed_per_change) + glo_costOfBuy)*(1-buys_correct_decimal_24)), 2)
                 average_buyAndFail_keyValue_cost08Percent = round(((average_buy_success_per_change - glo_costOfBuy)*buys_correct_decimal_24) - ((abs(average_buy_failed_per_change) + glo_costOfBuy)*(1-buys_correct_decimal_24)), 2)
 
-
                 buys_total = buys_success + buys_failed
                 # current price compared to highest price percentage change
                 price_high = 0
@@ -454,27 +408,27 @@ def getStocksFromSb(temp_stockInfo_list):
                 # percent_change_price_average = round(percent_change_total/(array_length-1), 2)
                 percent_change_price_median = round(median(percent_change_list), 2)
 
-                list_of_tuples = [(glo_stockInfoColName_price, price_last_close),
-                (glo_stockInfoColName_6_percent, percent_6),
-                (glo_stockInfoColName_6_value, value_6),
-                (glo_stockInfoColName_12_percent, percent_12),
-                (glo_stockInfoColName_12_value, value_12),
-                (glo_stockInfoColName_24_percent, percent_24),
-                (glo_stockInfoColName_24_value, value_24),
-                (glo_stockInfoColName_percentAverage, percent_average),
-                (glo_stockInfoColName_valueAverage, value_average),
-                (glo_stockInfoColName_buysTotal, buys_total),
-                (glo_stockInfoColName_24_buys_correct_percent, buys_correct_percent_24),
-                (glo_stockInfoColName_pricePercentChange_average, percent_change_price_average),
-                (glo_stockInfoColName_pricePercentChange_median, percent_change_price_median),
-                (glo_stockInfoColName_buyAverageFailedPerChange, average_buy_failed_per_change),
-                (glo_stockInfoColName_buyMedianFailedPerChange, median_buy_failed_per_change),
-                (glo_stockInfoColName_buyAverageSuccessPerChange, average_buy_success_per_change),
-                (glo_stockInfoColName_buyMedianSuccessPerChange, median_buy_success_per_change),
-                (glo_stockInfoColName_buyAndFailMedian_keyValue, median_buyAndFail_keyValue_cost08Percent),
-                (glo_stockInfoColName_buyAndFailAverage_keyValue, average_buyAndFail_keyValue_cost08Percent),
-                (glo_stockInfoColName_percentChange_highestThroughCurrent, price_highest_through_current),
-                (glo_stockInfoColName_url_sb, url)]
+                list_of_tuples = [(mod_shared.glo_colName_price, price_last_close),
+                (glo_colName_6_percent, percent_6),
+                (glo_colName_6_value, value_6),
+                (glo_colName_12_percent, percent_12),
+                (glo_colName_12_value, value_12),
+                (glo_colName_24_percent, percent_24),
+                (glo_colName_24_value, value_24),
+                (glo_colName_percentAverage, percent_average),
+                (glo_colName_valueAverage, value_average),
+                (glo_colName_buysTotal, buys_total),
+                (glo_colName_24_buys_correct_percent, buys_correct_percent_24),
+                (glo_colName_pricePercentChange_average, percent_change_price_average),
+                (glo_colName_pricePercentChange_median, percent_change_price_median),
+                (glo_colName_buyAverageFailedPerChange, average_buy_failed_per_change),
+                (glo_colName_buyMedianFailedPerChange, median_buy_failed_per_change),
+                (glo_colName_buyAverageSuccessPerChange, average_buy_success_per_change),
+                (glo_colName_buyMedianSuccessPerChange, median_buy_success_per_change),
+                (glo_colName_buyAndFailMedian_keyValue, median_buyAndFail_keyValue_cost08Percent),
+                (glo_colName_buyAndFailAverage_keyValue, average_buyAndFail_keyValue_cost08Percent),
+                (glo_colName_percentChange_highestThroughCurrent, price_highest_through_current),
+                (mod_shared.glo_colName_url_sb, url)]
 
                 row.update(OrderedDict(list_of_tuples))
         return temp_stockInfo_list
@@ -487,19 +441,19 @@ def getStocksFromNn(temp_stockInfo_list):
         counter = 2 
         with requests.Session() as s:
             for row in temp_stockInfo_list:
-                sbNameshort = row.get(glo_stockInfoColName_sbNameshort)
+                sbNameshort = row.get(mod_shared.glo_colName_sbNameshort)
                 if counter > glo_iterations_limit:
                     break
                 print(counter,':',sbNameshort)
                 counter += 1
 
-                if row.get(glo_stockInfoColName_url_sb) is None:
-                    print(glo_stockInfoColName_url_sb, 'was None - skipping')
+                if row.get(mod_shared.glo_colName_url_sb) is None:
+                    print(mod_shared.glo_colName_url_sb, 'was None - skipping')
                     continue
 
                 # checking complimentary list
-                if row.get(glo_complimentary_colName_compList) is not None:
-                    url_stock = row[glo_stockInfoColName_url_nn]
+                if row.get(glo_colName_compList) is not None:
+                    url_stock = row[mod_shared.glo_colName_url_nn]
                     list_of_tuples = getNnStockPageData(url_stock, s)
                     row.update(OrderedDict(list_of_tuples))
                     continue
@@ -539,7 +493,7 @@ def getStocksFromNn(temp_stockInfo_list):
                             url_stock = urlNn + urlNnStock_rel_list[i].a['href']
                             list_of_tuples = getNnStockPageData(url_stock, s)
                             dict_temp = dict(list_of_tuples)
-                            if dict_temp.get(glo_stockInfoColName_NameShortNordnet) == sbNameshortSplit:
+                            if dict_temp.get(mod_shared.glo_colName_NameShortNordnet) == sbNameshortSplit:
                                 row.update(OrderedDict(list_of_tuples))
                                 break
                 except Exception as e:
@@ -561,47 +515,46 @@ def stringToFLoat(temp_glo_filteredStockInfo_list, columnsToFloat_list):
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))   
 
 def filterStocksToWatch():
-    print ('\nSTART', inspect.stack()[0][3])
     try:
         # temp_glo_filteredStockInfo_list = getStockListFromFile()
         temp_glo_filteredStockInfo_list = getStockList(pathInputThis+glo_stockInfo_file_updated_str)
-        columnsToFloat_list = [glo_stockInfoColName_price, 
-        glo_stockInfoColName_6_percent,
-        glo_stockInfoColName_6_value,
-        glo_stockInfoColName_12_percent,
-        glo_stockInfoColName_12_value,
-        glo_stockInfoColName_24_percent,
-        glo_stockInfoColName_24_value,
-        glo_stockInfoColName_percentAverage,
-        glo_stockInfoColName_valueAverage,
-        glo_stockInfoColName_24_buys_correct_percent,
-        glo_stockInfoColName_buysTotal,
-        glo_stockInfoColName_percentChange_highestThroughCurrent,
-        glo_stockInfoColName_pricePercentChange_average,
-        glo_stockInfoColName_pricePercentChange_median,
-        glo_stockInfoColName_buyAverageFailedPerChange,
-        glo_stockInfoColName_buyMedianFailedPerChange,
-        glo_stockInfoColName_buyAverageSuccessPerChange,
-        glo_stockInfoColName_buyMedianSuccessPerChange,
-        glo_stockInfoColName_buyAndFailMedian_keyValue,
-        glo_stockInfoColName_buyAndFailAverage_keyValue
+        columnsToFloat_list = [mod_shared.glo_colName_price, 
+        glo_colName_6_percent,
+        glo_colName_6_value,
+        glo_colName_12_percent,
+        glo_colName_12_value,
+        glo_colName_24_percent,
+        glo_colName_24_value,
+        glo_colName_percentAverage,
+        glo_colName_valueAverage,
+        glo_colName_24_buys_correct_percent,
+        glo_colName_buysTotal,
+        glo_colName_percentChange_highestThroughCurrent,
+        glo_colName_pricePercentChange_average,
+        glo_colName_pricePercentChange_median,
+        glo_colName_buyAverageFailedPerChange,
+        glo_colName_buyMedianFailedPerChange,
+        glo_colName_buyAverageSuccessPerChange,
+        glo_colName_buyMedianSuccessPerChange,
+        glo_colName_buyAndFailMedian_keyValue,
+        glo_colName_buyAndFailAverage_keyValue
         ]
 
         temp_glo_filteredStockInfo_list = stringToFLoat(temp_glo_filteredStockInfo_list, columnsToFloat_list)
 
         # GROUP1: Stable
         # filter out minimum x percent buy correct
-        temp_glo_filteredStockInfo_gorup1_list = filterFilteredStockInfo(glo_stockInfoColName_24_buys_correct_percent, 
+        temp_glo_filteredStockInfo_gorup1_list = filterFilteredStockInfo(glo_colName_24_buys_correct_percent, 
             65, temp_glo_filteredStockInfo_list)
 
         # filter out minumum x buyAndFail_median_keyvalue
-        temp_glo_filteredStockInfo_gorup1_list = filterFilteredStockInfo(glo_stockInfoColName_buyAndFailMedian_keyValue, 
+        temp_glo_filteredStockInfo_gorup1_list = filterFilteredStockInfo(glo_colName_buyAndFailMedian_keyValue, 
             3, temp_glo_filteredStockInfo_gorup1_list)
 
         # sort highest MEDIAN (overall) percent change
         sorted_buyAndFail_median_keyvalue_list = []
         sorted_buyAndFail_median_keyvalue_list = sorted(temp_glo_filteredStockInfo_gorup1_list, 
-            key=lambda k: k[glo_stockInfoColName_buyAndFailMedian_keyValue], 
+            key=lambda k: k[glo_colName_buyAndFailMedian_keyValue], 
             reverse=True) # (list to sort; column to sort on; order)
 
         # get 30 highest of those
@@ -611,7 +564,7 @@ def filterStocksToWatch():
 
         # sort with most amount of buys
         sortedFiltered_buyAndFail_median_keyvalue_list = sorted(sortedFiltered_buyAndFail_median_keyvalue_list, 
-            key=lambda k: k[glo_stockInfoColName_buysTotal], 
+            key=lambda k: k[glo_colName_buysTotal], 
             reverse=True) 
 
         # get top 10 of those
@@ -619,26 +572,26 @@ def filterStocksToWatch():
         nameOfGroup_1 = 'GROUP 1_mediumRisk'
         for row in sortedFiltered_buyAndFail_median_keyvalue_list[:15]:
             # add "column with type: group1
-            row[glo_stockInfoColName_stockToBuy_group] = nameOfGroup_1
+            row[glo_colName_stockToBuy_group] = nameOfGroup_1
             group1_median_list.append(row)
 
         print('\nTOP 10 GROUP 1')
         for row in group1_median_list:
-            print(row[glo_stockInfoColName_sbNameshort],':', 
-                row[glo_stockInfoColName_buysTotal],':', 
-                row[glo_stockInfoColName_buyAndFailMedian_keyValue],':', 
-                row[glo_stockInfoColName_24_buys_correct_percent], ':', 
-                row[glo_stockInfoColName_stockToBuy_group])
+            print(row[mod_shared.glo_colName_sbNameshort],':', 
+                row[glo_colName_buysTotal],':', 
+                row[glo_colName_buyAndFailMedian_keyValue],':', 
+                row[glo_colName_24_buys_correct_percent], ':', 
+                row[glo_colName_stockToBuy_group])
 
         # GROUP2: High risk
         # remove empty cells
-        temp_glo_filteredStockInfo_group2_list = filterFilteredStockInfo(glo_stockInfoColName_buyAndFailAverage_keyValue, 
+        temp_glo_filteredStockInfo_group2_list = filterFilteredStockInfo(glo_colName_buyAndFailAverage_keyValue, 
             '', temp_glo_filteredStockInfo_list)
         
         # sort highest AVERAGE (overall) percent change
         sorted_buyAndFail_average_keyvalue_list = []
         sorted_buyAndFail_average_keyvalue_list = sorted(temp_glo_filteredStockInfo_group2_list, 
-            key=lambda k: k[glo_stockInfoColName_buyAndFailAverage_keyValue], 
+            key=lambda k: k[glo_colName_buyAndFailAverage_keyValue], 
             reverse=True) 
 
         # get top x of those
@@ -648,7 +601,7 @@ def filterStocksToWatch():
 
         # sort highest buy amount
         sortedFiltered_buyAndFail_average_keyvalue_list = sorted(sortedFiltered_buyAndFail_average_keyvalue_list, 
-            key=lambda k: k[glo_stockInfoColName_buysTotal], 
+            key=lambda k: k[glo_colName_buysTotal], 
             reverse=True) 
 
         # get top x of those
@@ -658,33 +611,131 @@ def filterStocksToWatch():
 
         # sort highest diff between current and highest price (try to catch stock in historic low)
         sortedFiltered_buyAndFail_average_keyvalue_list_2 = sorted(sortedFiltered_buyAndFail_average_keyvalue_list_2, 
-            key=lambda k: k[glo_stockInfoColName_percentChange_highestThroughCurrent], 
+            key=lambda k: k[glo_colName_percentChange_highestThroughCurrent], 
             reverse=True) 
 
         # get top x of those
         group2_average_list = []
         nameOfGroup_2 = 'GROUP 2_highRisk'
         for row in sortedFiltered_buyAndFail_average_keyvalue_list_2[:5]:
-            row[glo_stockInfoColName_stockToBuy_group] = nameOfGroup_2
+            row[glo_colName_stockToBuy_group] = nameOfGroup_2
             group2_average_list.append(row)
 
         print('\nTOP 10 GROUP 2')
         for row in group2_average_list:
-            print(row[glo_stockInfoColName_sbNameshort],':', 
-                row[glo_stockInfoColName_buysTotal],':', 
-                row[glo_stockInfoColName_buyAndFailAverage_keyValue],':', 
-                row[glo_stockInfoColName_percentChange_highestThroughCurrent], ':', 
-                row[glo_stockInfoColName_stockToBuy_group])
+            print(row[mod_shared.glo_colName_sbNameshort],':', 
+                row[glo_colName_buysTotal],':', 
+                row[glo_colName_buyAndFailAverage_keyValue],':', 
+                row[glo_colName_percentChange_highestThroughCurrent], ':', 
+                row[glo_colName_stockToBuy_group])
    
         # merge lists 
         stockToBuy_list = group1_median_list + group2_average_list # merging
         stockToBuy_list = list(unique_everseen(stockToBuy_list)) # remove duplicates
 
-        # set final columns
-
         return stockToBuy_list
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))    
+
+def deleteKeyValuesFromOrderedDict(list_to_update, list_of_keys):
+    try:
+        for row1 in list_to_update:
+            for keyRow in list_of_keys:
+                del row1[keyRow]
+        return list_to_update
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))  
+
+def addKeyToOrderedDict(list_to_update, list_of_keys):
+    try:
+        for row1 in list_to_update:
+            for keyRow in list_of_keys:
+                row1[keyRow] = ''
+        return list_to_update
+    except Exception as e:
+        print ("ERROR in", inspect.stack()[0][3], ':', str(e))      
+
+
+
+
+def setAllStockLists():
+    print ('\nSTART', inspect.stack()[0][3])
+    try:
+        # temp_stockInfo_list = getStockList(pathInputThis + glo_stockInfo_file_raw_str)
+        temp_stockInfo_list = getStockList(pathInputThis + 'stock-info-raw-4.csv')
+        setStockListGlobally(temp_stockInfo_list, glo_stockInfo_list_str)
+        print('temp_stockInfo_list:', len(temp_stockInfo_list))
+        
+        temp_blacklist = getStockList(pathInputThis + glo_blacklist_file_str)
+        setStockListGlobally(temp_blacklist, glo_blacklist_str)
+        print('temp_blacklist:', len(temp_blacklist))
+
+        temp_stockInfo_list = removeListFromList(temp_stockInfo_list, temp_blacklist)
+        print('temp_stockInfo_list:', len(temp_stockInfo_list))
+
+        temp_complimentary_list = getStockList(pathInputThis + glo_complimentary_file_str)
+        setStockListGlobally(temp_complimentary_list, glo_nn_complimentary_list_str)
+        print('temp_complimentary_list:', len(temp_complimentary_list))
+
+        temp_stockInfo_list = getStocksFromSb(temp_stockInfo_list)
+        print('temp_stockInfo_list:', len(temp_stockInfo_list))
+
+        temp_stockInfo_list = updateListFromList(temp_stockInfo_list, temp_complimentary_list) # list to update, list to update from
+
+        temp_stockInfo_list = getStocksFromNn(temp_stockInfo_list)
+
+        writeStockList(temp_stockInfo_list, pathInputThis + glo_stockInfo_file_updated_str)
+    except Exception as e:
+        print ("ERROR in file", fileName, 'and function' ,inspect.stack()[0][3], ':', str(e))
+    else:
+        print('END', inspect.stack()[0][3], '\n')
+
+def setStockToBuyList():
+    print ('\nSTART', inspect.stack()[0][3])
+    try:
+        stockToBuy_list = filterStocksToWatch()
+        writeStockList(stockToBuy_list, pathInputThis+glo_stockToBuy_allData_file_str)
+
+        list_of_keys_to_remove = [mod_shared.glo_colName_price,
+        glo_colName_6_percent,
+        glo_colName_6_value,
+        glo_colName_12_percent,
+        glo_colName_12_value,
+        glo_colName_24_percent,
+        glo_colName_24_value,
+        glo_colName_percentAverage,
+        glo_colName_valueAverage,
+        glo_colName_24_buys_correct_percent,
+        glo_colName_buysTotal,
+        glo_colName_pricePercentChange_average,
+        glo_colName_pricePercentChange_median,
+        glo_colName_buyAverageFailedPerChange,
+        glo_colName_buyAverageSuccessPerChange,
+        glo_colName_buyMedianFailedPerChange,
+        glo_colName_buyMedianSuccessPerChange,
+        glo_colName_buyAndFailMedian_keyValue,
+        glo_colName_buyAndFailAverage_keyValue,
+        glo_colName_percentChange_highestThroughCurrent,
+        glo_colName_compList
+        ]
+
+        stockToBuy_forOutputFolder_list = deleteKeyValuesFromOrderedDict(stockToBuy_list, list_of_keys_to_remove)
+
+        list_of_keys_to_add = [mod_shared.glo_colName_held,
+        mod_shared.glo_colName_active,
+        mod_shared.glo_colName_activeTemp,
+        mod_shared.glo_colName_amountHeld,
+        mod_shared.glo_colName_price,
+        mod_shared.glo_colName_priceTemp
+        ]
+
+        stockToBuy_forOutputFolder_list = addKeyToOrderedDict(stockToBuy_forOutputFolder_list, list_of_keys_to_add)
+        
+        writeStockList(stockToBuy_forOutputFolder_list, mod_shared.pathInput_main+mod_shared.glo_stockToBuy_file_str)
+    except Exception as e:
+        print ("ERROR in file", fileName, 'and function' ,inspect.stack()[0][3], ':', str(e))
+    else:
+        print('END', inspect.stack()[0][3], '\n')
 
 def clearSbWatchlist():
     print ('\nSTART', inspect.stack()[0][3])
@@ -700,29 +751,9 @@ def clearSbWatchlist():
         browser.submit_form(form, submit=form['ctl00$MainContent$DeleteAll']) # delete all watchlist
 
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))    
+        print ("ERROR in file", fileName, 'and function' ,inspect.stack()[0][3], ':', str(e))
 
-def getCredentials(domain):
-    try:
-        if domain == gloCredNordnet:
-            conf = yaml.load(open(pathFileThis + pathInput + 'credentials.yml'))
-            username = conf['nordnet']['username']
-            pwd = conf['nordnet']['password']
-            return {'username': username, 'password': pwd}
-        elif domain == gloCredSb:
-            conf = yaml.load(open(pathFileThis + pathInput + 'credentials.yml'))
-            username = conf['sb']['username']
-            pwd = conf['sb']['password']
-            return {'username': username, 'pwd': pwd}
-        elif domain == gloCredGmailAutotrading:
-            conf = yaml.load(open(pathFileThis + pathInput + 'credentials.yml'))
-            username = conf['gmail_autotrade']['username']
-            pwd = conf['gmail_autotrade']['password']
-            return {'username': username, 'pwd': pwd}
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
-
-def setSbWatchlist(stockToBuy_list):
+def setSbWatchlist():
     print ('\nSTART', inspect.stack()[0][3])
     try:
         # Login in to SB, return browser object
@@ -752,136 +783,16 @@ def setSbWatchlist(stockToBuy_list):
             browser.session.headers = {**browser.session.headers, **headers}
             browser.open(url_stock, method='post', data=formData)
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))    
+        print ("ERROR in file", fileName, 'and function' ,inspect.stack()[0][3], ':', str(e))
 
-def sbLogin():
-    print ('\nSTART', inspect.stack()[0][3])
-    try:
-        browser = RoboBrowser(history=True)
-        browser.open('https://www.swedishbulls.com/Signin.aspx?lang=en')
-        form = browser.get_form()
-        # SB login
-        credSb = getCredentials(gloCredSb)
-        form[gloSbLoginFormUser].value = credSb.get('username')
-        form[gloSbLoginFormPass].value = credSb.get('pwd')
-        browser.submit_form(form, submit=form[gloSbLoginFormSubmit])
-    except Exception as e: # catch error
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
-    else:
-        print('END', inspect.stack()[0][3], '\n')
-        return (browser)
-
-def deleteKeyValuesFromOrderedDict(list_to_update, list_of_keys):
-    print ('\nSTART', inspect.stack()[0][3])
-    try:
-        for row1 in list_to_update:
-            for keyRow in list_of_keys:
-                del row1[keyRow]
-        return list_to_update
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))  
-
-def addKeyToOrderedDict(list_to_update, list_of_keys):
-    print ('\nSTART', inspect.stack()[0][3])
-    try:
-        for row1 in list_to_update:
-            for keyRow in list_of_keys:
-                row1[keyRow] = ''
-        return list_to_update
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))      
-
-start = time.time()
-# temp_stockInfo_list = getStockList(pathInputThis + glo_stockInfo_file_raw_str)
-# # temp_stockInfo_list = getStockList(pathInputThis + 'stock-info-raw-4.csv')
-# setStockListGlobally(temp_stockInfo_list, glo_stockInfo_list_str)
-# print('temp_stockInfo_list:', len(temp_stockInfo_list))
-
-# temp_blacklist = getStockList(pathInputThis + glo_blacklist_file_str)
-# setStockListGlobally(temp_blacklist, glo_blacklist_str)
-# print('temp_blacklist:', len(temp_blacklist))
-
-# temp_stockInfo_list = removeListFromList(temp_stockInfo_list, temp_blacklist)
-# print('temp_stockInfo_list:', len(temp_stockInfo_list))
-
-# temp_complimentary_list = getStockList(pathInputThis + glo_complimentary_file_str)
-# setStockListGlobally(temp_complimentary_list, glo_nn_complimentary_list_str)
-# print('temp_complimentary_list:', len(temp_complimentary_list))
-
-# temp_stockInfo_list = getStocksFromSb(temp_stockInfo_list)
-# print('temp_stockInfo_list:', len(temp_stockInfo_list))
-
-# temp_stockInfo_list = updateListFromList(temp_stockInfo_list, temp_complimentary_list) # list to update, list to update from
-
-# temp_stockInfo_list = getStocksFromNn(temp_stockInfo_list)
-
-# writeStockList(temp_stockInfo_list, pathInputThis + glo_stockInfo_file_updated_str)
-# writeStockList(temp_stockInfo_list, pathOutput+glo_stockInfo_file_updated_str)
-
-# time.sleep(5)
-
-# stockToBuy_list = filterStocksToWatch()
-# writeStockList(stockToBuy_list, pathInputThis+glo_stockToBuy_allData_file_str)
-
-# writeStockList(stockToBuy_list, pathInput+glo_stockToBuy_file_str)
-
-# clearSbWatchlist()
-# stockToBuy_list = getStockList(pathInputThis+glo_stockToBuy_file_str)
-
-list_of_keys_to_remove = [glo_stockInfoColName_price,
-glo_stockInfoColName_6_percent,
-glo_stockInfoColName_6_value,
-glo_stockInfoColName_12_percent,
-glo_stockInfoColName_12_value,
-glo_stockInfoColName_24_percent,
-glo_stockInfoColName_24_value,
-glo_stockInfoColName_percentAverage,
-glo_stockInfoColName_valueAverage,
-glo_stockInfoColName_24_buys_correct_percent,
-glo_stockInfoColName_buysTotal,
-glo_stockInfoColName_pricePercentChange_average,
-glo_stockInfoColName_pricePercentChange_median,
-glo_stockInfoColName_buyAverageFailedPerChange,
-glo_stockInfoColName_buyAverageSuccessPerChange,
-glo_stockInfoColName_buyMedianFailedPerChange,
-glo_stockInfoColName_buyMedianSuccessPerChange,
-glo_stockInfoColName_buyAndFailMedian_keyValue,
-glo_stockInfoColName_buyAndFailAverage_keyValue,
-glo_stockInfoColName_percentChange_highestThroughCurrent,
-glo_complimentary_colName_compList
-]
-
-# stockToBuy_forOutputFolder_list = deleteKeyValuesFromOrderedDict(stockToBuy_list, list_of_keys_to_remove)
-
-list_of_keys_to_add = [glo_traderScript_colName_held,
-glo_traderScript_colName_active,
-glo_traderScript_colName_activeTemp,
-glo_traderScript_colName_amountHeld,
-glo_traderScript_colName_price,
-glo_traderScript_colName_priceTemp
-]
-# stockToBuy_forOutputFolder_list = addKeyToOrderedDict(stockToBuy_forOutputFolder_list, list_of_keys_to_add)
-# writeStockList(stockToBuy_forOutputFolder_list, pathInput_main+glo_stockToBuy_file_str)
-
-BP()
-pass
-
-# setSbWatchlist(stockToBuy_list)
-
-end = time.time()
-timeElapsed = datetime.timedelta(seconds=(end - start))
-timeElapsed = str(timeElapsed - datetime.timedelta(microseconds=timeElapsed.microseconds))
-print('Time elapsed (H:M:S):', timeElapsed)
-# Goal:
-    # 1. check best stocks to watch
-    #   - get the success-fail ratio of signals for 6, 12 and 24 months
-    #   - get the success-fail ratio total average between 6, 12 and 24 months
-    # 2. get information which can directly be used by 4-robo
-    #   - market Id
-    #   - Identifier Id
-    #   - (sorted by highest?)
-    # 3. make it possible for 4-robo to use the output automatically
-    # 4. Make 4-robo use the ouput automatically
-
-    # Consider:
-    # - If new list of stocks, how to handle of those already held are not in list?
+# setSbWatchlist
+# - get stock list to watch
+# - add stocks held
+    # - check what is held
+    # - check if held exist in new list
+    # - add found from stock-info-updated (only needed keys)
+# - add stocks with active signal (buy or sell)
+    # - see above
+# - remove watchlist
+# - set new watchlist
+# - confirm new watchlist match with new stock list

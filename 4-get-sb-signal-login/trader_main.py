@@ -1,3 +1,4 @@
+import trader_shared as mod_shared
 from pdb import set_trace as BP
 import re
 from robobrowser import RoboBrowser
@@ -19,26 +20,21 @@ from pprint import pformat
 
 # Static price update at setStockStatus?
 # Only use stop-loss?
-
-sPathOutput = "/output/"
-sPathInput = "/input/"
-sPathError = "/errorlog/"
-sPathPidFile = '/pid.txt'
 pathFile = os.path.dirname(os.path.abspath(__file__))
 
 # --- Global variables
 # stock to buy
-glo_stockToBuy_str = 'stock-to-buy.csv'
+# mod_shared.glo_stockToBuy_str = 'stock-to-buy.csv'
 
 # sb login form
-gloSbLoginFormUser = 'ctl00$MainContent$uEmail'
-gloSbLoginFormPass = 'ctl00$MainContent$uPassword'
-gloSbLoginFormSubmit = 'ctl00$MainContent$btnSubmit'
+# mod_shared.glo_sbLoginFormUser = 'ctl00$MainContent$uEmail'
+# mod_shared.glo_sbLoginFormPass = 'ctl00$MainContent$uPassword'
+# mod_shared.glo_sbLoginFormSubmit = 'ctl00$MainContent$btnSubmit'
 
 # Cred strings
-gloCredSb = 'credSb'
-gloCredNordnet = 'credNordnet'
-gloCredGmailAutotrading = 'credGmailAutotrading'
+# mod_shared.glo_credSb = 'credSb'
+# mod_shared.glo_credNordnet = 'credNordnet'
+# mod_shared.glo_credGmailAutotrading = 'credGmailAutotrading'
 
 # stock status keys
 gloStockStatusList = []
@@ -211,7 +207,7 @@ def writeErrorLog (callingFunction, eStr):
         errorCounter = 'ERROR_COUNTER'
         errorCallingFunction = 'CALLING_FUNCTION'
         errorMsg = 'E_MSG'
-        file_errorLog = pathFile + sPathError + 'errorLog.csv'
+        file_errorLog = pathFile + mod_shared.pathError + 'errorLog.csv'
         file_exists = os.path.isfile(file_errorLog)
         if glo_counter_error <= 100:
             with open (file_errorLog, 'a') as csvFile:
@@ -238,7 +234,7 @@ def writeOrderStatistics(sbStockNameShort, payloadOrder):
         statNameshortSb = 'NAMESHORT_SB'
         statSignal = 'SIGNAL'
         statPrice = 'PRICE'
-        file_orderStat = pathFile + sPathOutput + 'orderStatistics.csv'
+        file_orderStat = pathFile + mod_shared.pathOutput + 'orderStatistics.csv'
         file_exists = os.path.isfile(file_orderStat)
         with open (file_orderStat, 'a') as csvFile:
             fieldnames = [statDate, statTime, statDay, statNameshortSb, statSignal, statPrice]
@@ -258,7 +254,7 @@ def writeOrderStatistics(sbStockNameShort, payloadOrder):
 def writeConfirmationStatistics(sbStockNameShort, sbSignalType, sbSignalConf, sbLastPrice, sbPriceLevel):
     try:
         file_confStat = None
-        file_confStat = pathFile + sPathOutput + glo_confStat_fileName_str
+        file_confStat = pathFile + mod_shared.pathOutput + glo_confStat_fileName_str
         file_exists = os.path.isfile(file_confStat)
         with open (file_confStat, 'a') as csvFile:
             fieldnames = [glo_stat_key_date, 
@@ -290,7 +286,7 @@ def writeConfirmationStatistics(sbStockNameShort, sbSignalType, sbSignalConf, sb
 def isConfirmationStatSet(sbStockNameShort, sbSignalConf):
     try:
         file_confStat = None
-        file_confStat = pathFile + sPathOutput + glo_confStat_fileName_str
+        file_confStat = pathFile + mod_shared.pathOutput + glo_confStat_fileName_str
         file_exists = os.path.isfile(file_confStat)
         with open (file_confStat) as csvFile:
             rows = csv.DictReader(csvFile, delimiter=';')
@@ -308,18 +304,18 @@ def isConfirmationStatSet(sbStockNameShort, sbSignalConf):
 
 def getCredentials(domain):
     try:
-        if domain == gloCredNordnet:
-            conf = yaml.load(open(pathFile + sPathInput + 'credentials.yml'))
+        if domain == mod_shared.glo_credNordnet:
+            conf = yaml.load(open(pathFile + mod_shared.pathInput + 'credentials.yml'))
             username = conf['nordnet']['username']
             pwd = conf['nordnet']['password']
             return {'username': username, 'password': pwd}
-        elif domain == gloCredSb:
-            conf = yaml.load(open(pathFile + sPathInput + 'credentials.yml'))
+        elif domain == mod_shared.glo_credSb:
+            conf = yaml.load(open(pathFile + mod_shared.pathInput + 'credentials.yml'))
             username = conf['sb']['username']
             pwd = conf['sb']['password']
             return {'username': username, 'pwd': pwd}
-        elif domain == gloCredGmailAutotrading:
-            conf = yaml.load(open(pathFile + sPathInput + 'credentials.yml'))
+        elif domain == mod_shared.glo_credGmailAutotrading:
+            conf = yaml.load(open(pathFile + mod_shared.pathInput + 'credentials.yml'))
             username = conf['gmail_autotrade']['username']
             pwd = conf['gmail_autotrade']['password']
             return {'username': username, 'pwd': pwd}
@@ -330,7 +326,7 @@ def getCredentials(domain):
 def initStockStatus():
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        with open(pathFile + sPathInput + glo_stockToBuy_str, 'rt', encoding='ISO-8859-1') as file:
+        with open(pathFile + mod_shared.pathInput + mod_shared.glo_stockToBuy_str, 'rt', encoding='ISO-8859-1') as file:
             records = csv.DictReader(file, delimiter=';')
             for row in records:
                 setStockList(row)
@@ -884,8 +880,7 @@ def sendEmail(sbj, body):
         msg = 'Subject: {}\n\n{}'.format(sbj, body)
         smtp = smtplib.SMTP('smtp.gmail.com:587')
         smtp.starttls()
-        credGmailAutotrading = getCredentials(gloCredGmailAutotrading)
-        # form[gloSbLoginFormUser].value = credSb.get('username')
+        credGmailAutotrading = getCredentials(mod_shared.glo_credGmailAutotrading)
         smtp.login(credGmailAutotrading.get('username'), credGmailAutotrading.get('pwd'))
         smtp.sendmail(credGmailAutotrading.get('username'), credGmailAutotrading.get('username'), msg) # 1 from, 2 to
     except Exception as e:
@@ -1007,7 +1002,7 @@ def createPidFile():
     print ('\nSTART', inspect.stack()[0][3])
     try:
         pidInt = os.getpid()
-        file_pid = pathFile + sPathPidFile
+        file_pid = pathFile + mod_shared.pidFile_str
         with open(file_pid, "w") as file:
             file.write(str(pidInt))
     except Exception as e:
@@ -1127,7 +1122,7 @@ def nordnetLogin():
             print(urlPostAnonymous, 'failed!')
         # Login post
         urlPostLogin = 'https://www.nordnet.se/api/2/authentication/basic/login'
-        credNord = getCredentials(gloCredNordnet)
+        credNord = getCredentials(mod_shared.glo_credNordnet)
         r = s.post(urlPostLogin, headers=header, data=credNord)
 
         if r.status_code != 200:
@@ -1155,10 +1150,10 @@ def sbLogin():
         browser.open('https://www.swedishbulls.com/Signin.aspx?lang=en')
         form = browser.get_form()
         # SB login
-        credSb = getCredentials(gloCredSb)
-        form[gloSbLoginFormUser].value = credSb.get('username')
-        form[gloSbLoginFormPass].value = credSb.get('pwd')
-        browser.submit_form(form, submit=form[gloSbLoginFormSubmit])
+        credSb = getCredentials(mod_shared.glo_credSb)
+        form[mod_shared.glo_sbLoginFormUser].value = credSb.get('username')
+        form[mod_shared.glo_sbLoginFormPass].value = credSb.get('pwd')
+        browser.submit_form(form, submit=form[mod_shared.glo_sbLoginFormSubmit])
     except Exception as e: # catch error
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
