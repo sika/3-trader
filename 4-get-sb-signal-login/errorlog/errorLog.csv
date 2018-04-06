@@ -40,3 +40,21 @@ DATE;TIME;DAY;ERROR_COUNTER;E_MSG;CALLING_FUNCTION
 2018-04-02;21:21;Monday;2;('could not match', 'MediRätt AB', 'with', 'NAMESHORT_SB');getSbNameShortByNnName
 2018-04-02;21:21;Monday;3;('could not match', 'MediRätt AB', 'with', 'NAMESHORT_SB');getSbNameShortByNnName
 2018-04-02;21:21;Monday;4;('could not match', 'Dividend Sweden B', 'with', 'NAMESHORT_SB');getSbNameShortByNnName
+2018-04-05;15:36;Thursday;1;module 'trader_shared' has no attribute 'glo_stockToBuy_str';initStockStatus
+2018-04-05;15:36;Thursday;2;Can't convert 'int' object to str implicitly;setStockStatus
+2018-04-05;15:36;Thursday;3;module 'trader_shared' has no attribute 'glo_credSb';sbLogin
+2018-04-05;15:36;Thursday;4;'NoneType' object has no attribute 'find';sbGetSignal
+2018-04-05;15:39;Thursday;1;module 'trader_shared' has no attribute 'glo_stockToBuy_str';initStockStatus
+2018-04-05;15:51;Thursday;1;Can't convert 'int' object to str implicitly;setStockStatus
+2018-04-05;15:51;Thursday;2;name 'inspect' is not defined;sbLogin
+2018-04-05;15:51;Thursday;3;'NoneType' object has no attribute 'find';sbGetSignal
+2018-04-05;15:55;Thursday;1;"{'reason': 'Bad Request',
+ 'status_code': '400',
+ 'url': 'https://www.nordnet.se/api/2/authentication/basic/login'}";nordnetLogin
+2018-04-05;15:55;Thursday;2;'NoneType' object has no attribute 'next_sibling';setStockStatus
+2018-04-05;15:55;Thursday;3;'NoneType' object has no attribute 'get';sbLogin
+2018-04-05;15:55;Thursday;4;'NoneType' object has no attribute 'find';sbGetSignal
+2018-04-05;16:02;Thursday;1;'NoneType' object has no attribute 'find';sbGetSignal
+2018-04-05;16:02;Thursday;1;'NoneType' object has no attribute 'find';sbGetSignal
+2018-04-05;16:08;Thursday;1;Can't convert 'int' object to str implicitly;setStockStatus
+2018-04-05;16:50;Thursday;1;local variable 'test' referenced before assignment;triggerError

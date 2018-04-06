@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 import re
 from statistics import median
 from  more_itertools import unique_everseen
+import time
 from pprint import pprint
 from pprint import pformat
 
@@ -16,19 +17,15 @@ pathInputThis = "/input_" + os.path.splitext(os.path.basename(__file__))[0] + '/
 pathFileThis = os.path.dirname(os.path.abspath(__file__))
 fileName = os.path.basename(__file__)
 
-glo_stockInfo_file_raw_str = 'stock-info-raw.csv'
-glo_blacklist_file_str = 'blacklist.csv'
-glo_complimentary_file_str = 'nn-complimentary-list.csv'
-glo_stockInfo_file_updated_str = 'stock-info-updated.csv'
-glo_stockToBuy_allData_file_str = 'stock-to-buy-all-data.csv'
+glo_stockInfo_file_raw = 'stock-info-raw.csv'
+glo_blacklist_file = 'blacklist.csv'
+glo_complimentary_file = 'nn-complimentary-list.csv'
+glo_stockInfo_file_updated = 'stock-info-updated.csv'
+glo_stockToBuy_allData_file = 'stock-to-buy-all-data.csv'
 
-glo_stockInfo_list = []
-glo_stockInfo_list_str = 'glo_stockInfo_list'
-glo_filteredStockInfo_list = []
-glo_nn_complimentary_list = []
-glo_nn_complimentary_list_str = 'glo_nn_complimentary_list'
-glo_blacklist = []
-glo_blacklist_str = 'glo_blacklist'
+glo_stockInfo_list_name = 'glo_stockInfo_list'
+glo_nn_complimentary_list_name = 'glo_nn_complimentary_list'
+glo_blacklist_name = 'glo_blacklist'
 
 glo_colName_6_percent = 'MONTH_6_PERCENT_CORRECT'
 glo_colName_6_value = 'MONTH_6_VALUE'
@@ -52,10 +49,6 @@ glo_colName_percentChange_highestThroughCurrent = 'PER_CHANGE_HIGHEST_THROUGH_CU
 glo_colName_stockToBuy_group = 'GROUP_BUY'
 glo_colName_compList = 'COMPLIMENTARY_LIST'
 
-gloSbLoginFormUser = 'ctl00$MainContent$uEmail'
-gloSbLoginFormPass = 'ctl00$MainContent$uPassword'
-gloSbLoginFormSubmit = 'ctl00$MainContent$btnSubmit'
-
 glo_sbGeneralUrl_str = 'https://www.swedishbulls.com/SignalPage.aspx?lang=en&Ticker='
 
 glo_costOfBuy = 0.8
@@ -64,10 +57,10 @@ glo_colValue_notAvailable = 'N/A'
 
 glo_iterations_limit = 1000
 
-def getStockList(name_of_list_and_path):
+def getStockListFromFile(path, name_of_list):
     try:
         temp_list = []
-        fileNamePath = pathFileThis + name_of_list_and_path
+        fileNamePath = pathFileThis + path + name_of_list
         with open (fileNamePath, encoding='ISO-8859-1') as csvFile:
             records = csv.DictReader(csvFile, delimiter=';') # omitting "fieldnames" - will make file headers fieldnames
             fieldnames = records.fieldnames
@@ -78,23 +71,22 @@ def getStockList(name_of_list_and_path):
     except Exception as e:
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
-def setStockListGlobally(temp_list, name_of_list):
-    try:
-        if name_of_list == glo_stockInfo_list_str:
-            global glo_stockInfo_list
-            glo_stockInfo_list = temp_list
-        elif name_of_list == glo_blacklist_str:
-            global glo_blacklist
-            glo_blacklist = temp_list
-        elif name_of_list == glo_nn_complimentary_list_str:
-            global glo_nn_complimentary_list
-            glo_nn_complimentary_list = temp_list
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+# def setStockListGlobally(temp_list, name_of_list):
+#     try:
+#         if name_of_list == glo_stockInfo_list_name:
+#             global glo_stockInfo_list
+#             glo_stockInfo_list = temp_list
+#         elif name_of_list == glo_blacklist_name:
+#             global glo_blacklist
+#             glo_blacklist = temp_list
+#         elif name_of_list == glo_nn_complimentary_list_name:
+#             global glo_nn_complimentary_list
+#             glo_nn_complimentary_list = temp_list
+#     except Exception as e:
+#         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
 
 def updateListFromList(list_to_update, list_to_update_from):
     try:
-        # global glo_stockInfo_list
         # temp_glo_stockInfo_list = glo_stockInfo_list
         for rowTo in list_to_update:
             for rowFrom in list_to_update_from:
@@ -516,8 +508,7 @@ def stringToFLoat(temp_glo_filteredStockInfo_list, columnsToFloat_list):
 
 def filterStocksToWatch():
     try:
-        # temp_glo_filteredStockInfo_list = getStockListFromFile()
-        temp_glo_filteredStockInfo_list = getStockList(pathInputThis+glo_stockInfo_file_updated_str)
+        temp_glo_filteredStockInfo_list = getStockListFromFile(pathInputThis, glo_stockInfo_file_updated)
         columnsToFloat_list = [mod_shared.glo_colName_price, 
         glo_colName_6_percent,
         glo_colName_6_value,
@@ -656,25 +647,23 @@ def addKeyToOrderedDict(list_to_update, list_of_keys):
         print ("ERROR in", inspect.stack()[0][3], ':', str(e))      
 
 
-
-
 def setAllStockLists():
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        # temp_stockInfo_list = getStockList(pathInputThis + glo_stockInfo_file_raw_str)
-        temp_stockInfo_list = getStockList(pathInputThis + 'stock-info-raw-4.csv')
-        setStockListGlobally(temp_stockInfo_list, glo_stockInfo_list_str)
+        # temp_stockInfo_list = getStockListFromFile(pathInputThis,  glo_stockInfo_file_raw)
+        temp_stockInfo_list = getStockListFromFile(pathInputThis, 'stock-info-raw-4.csv')
+        # setStockListGlobally(temp_stockInfo_list, glo_stockInfo_list_name)
         print('temp_stockInfo_list:', len(temp_stockInfo_list))
         
-        temp_blacklist = getStockList(pathInputThis + glo_blacklist_file_str)
-        setStockListGlobally(temp_blacklist, glo_blacklist_str)
+        temp_blacklist = getStockListFromFile(pathInputThis, glo_blacklist_file)
+        # setStockListGlobally(temp_blacklist, glo_blacklist_name)
         print('temp_blacklist:', len(temp_blacklist))
 
         temp_stockInfo_list = removeListFromList(temp_stockInfo_list, temp_blacklist)
         print('temp_stockInfo_list:', len(temp_stockInfo_list))
 
-        temp_complimentary_list = getStockList(pathInputThis + glo_complimentary_file_str)
-        setStockListGlobally(temp_complimentary_list, glo_nn_complimentary_list_str)
+        temp_complimentary_list = getStockListFromFile(pathInputThis, glo_complimentary_file)
+        # setStockListGlobally(temp_complimentary_list, glo_nn_complimentary_list_name)
         print('temp_complimentary_list:', len(temp_complimentary_list))
 
         temp_stockInfo_list = getStocksFromSb(temp_stockInfo_list)
@@ -684,7 +673,7 @@ def setAllStockLists():
 
         temp_stockInfo_list = getStocksFromNn(temp_stockInfo_list)
 
-        writeStockList(temp_stockInfo_list, pathInputThis + glo_stockInfo_file_updated_str)
+        writeStockList(temp_stockInfo_list, pathInputThis + glo_stockInfo_file_updated)
     except Exception as e:
         print ("ERROR in file", fileName, 'and function' ,inspect.stack()[0][3], ':', str(e))
     else:
@@ -694,7 +683,7 @@ def setStockToBuyList():
     print ('\nSTART', inspect.stack()[0][3])
     try:
         stockToBuy_list = filterStocksToWatch()
-        writeStockList(stockToBuy_list, pathInputThis+glo_stockToBuy_allData_file_str)
+        writeStockList(stockToBuy_list, pathInputThis+glo_stockToBuy_allData_file)
 
         list_of_keys_to_remove = [mod_shared.glo_colName_price,
         glo_colName_6_percent,
@@ -731,59 +720,71 @@ def setStockToBuyList():
 
         stockToBuy_forOutputFolder_list = addKeyToOrderedDict(stockToBuy_forOutputFolder_list, list_of_keys_to_add)
         
-        writeStockList(stockToBuy_forOutputFolder_list, mod_shared.pathInput_main+mod_shared.glo_stockToBuy_file_str)
+        writeStockList(stockToBuy_forOutputFolder_list, mod_shared.pathInput_main+mod_shared.glo_stockToBuy_file)
     except Exception as e:
         print ("ERROR in file", fileName, 'and function' ,inspect.stack()[0][3], ':', str(e))
     else:
         print('END', inspect.stack()[0][3], '\n')
 
-def clearSbWatchlist():
-    print ('\nSTART', inspect.stack()[0][3])
+# def clearSbWatchlist():
+#     print ('\nSTART', inspect.stack()[0][3])
+#     try:
+#         # Login in to SB, return browser object
+#         browser = sbLogin()
+
+#         # Find and go to Watchlist
+#         link = browser.find('a', href=re.compile('Watchlist')) # find Watchlist link
+#         link = browser.follow_link(link)
+
+#         form = browser.get_form() # get form for deleteAll (one big shared form)
+#         browser.submit_form(form, submit=form['ctl00$MainContent$DeleteAll']) # delete all watchlist
+
+#     except Exception as e:
+#         print ("ERROR in file", fileName, 'and function' ,inspect.stack()[0][3], ':', str(e))
+
+# def setSbWatchlist():
+#     print ('\nSTART', inspect.stack()[0][3])
+#     try:
+#         # Login in to SB, return browser object
+#         browser = sbLogin()
+
+#         url_base = 'https://www.swedishbulls.com/members/'
+#         for row in stockToBuy_list:
+#             # get non-member URL from list and format to member URL
+#             url_stock = row.get(glo_stockInfoColName_url_sb)
+#             url_stock_rel = url_stock[29:]
+#             url_stock = url_base + url_stock_rel
+
+#             browser.open(url_stock)
+
+#             # set form payload
+#             formData = {'ctl00$ScriptManager1': 'ctl00$MainContent$UpdatePanel1|ctl00$MainContent$AddtoWatchlist',
+#             '__EVENTTARGET': 'ctl00$MainContent$AddtoWatchlist',
+#             '__EVENTARGUMENT': 'Click',
+#             '__ASYNCPOST': 'true'}
+#             # add new headers
+#             headers = {'Referer' : 'https://www.swedishbulls.com/members/SignalPage.aspx?lang=en&Ticker=TETY.ST',
+#             'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36',
+#             'X-MicrosoftAjax' : 'Delta=true',
+#             'X-Requested-With' : 'XMLHttpRequest',
+#             'Content-Type' : 'application/x-www-form-urlencoded; charset=UTF-8'}
+#             # merge current with new headers
+#             browser.session.headers = {**browser.session.headers, **headers}
+#             browser.open(url_stock, method='post', data=formData)
+#     except Exception as e:
+#         print ("ERROR in file", fileName, 'and function' ,inspect.stack()[0][3], ':', str(e))
+
+def main():
     try:
-        # Login in to SB, return browser object
-        browser = sbLogin()
-
-        # Find and go to Watchlist
-        link = browser.find('a', href=re.compile('Watchlist')) # find Watchlist link
-        link = browser.follow_link(link)
-
-        form = browser.get_form() # get form for deleteAll (one big shared form)
-        browser.submit_form(form, submit=form['ctl00$MainContent$DeleteAll']) # delete all watchlist
-
+        setAllStockLists()
+        time.sleep(5)
+        setStockToBuyList()
     except Exception as e:
         print ("ERROR in file", fileName, 'and function' ,inspect.stack()[0][3], ':', str(e))
 
-def setSbWatchlist():
-    print ('\nSTART', inspect.stack()[0][3])
-    try:
-        # Login in to SB, return browser object
-        browser = sbLogin()
-
-        url_base = 'https://www.swedishbulls.com/members/'
-        for row in stockToBuy_list:
-            # get non-member URL from list and format to member URL
-            url_stock = row.get(glo_stockInfoColName_url_sb)
-            url_stock_rel = url_stock[29:]
-            url_stock = url_base + url_stock_rel
-
-            browser.open(url_stock)
-
-            # set form payload
-            formData = {'ctl00$ScriptManager1': 'ctl00$MainContent$UpdatePanel1|ctl00$MainContent$AddtoWatchlist',
-            '__EVENTTARGET': 'ctl00$MainContent$AddtoWatchlist',
-            '__EVENTARGUMENT': 'Click',
-            '__ASYNCPOST': 'true'}
-            # add new headers
-            headers = {'Referer' : 'https://www.swedishbulls.com/members/SignalPage.aspx?lang=en&Ticker=TETY.ST',
-            'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36',
-            'X-MicrosoftAjax' : 'Delta=true',
-            'X-Requested-With' : 'XMLHttpRequest',
-            'Content-Type' : 'application/x-www-form-urlencoded; charset=UTF-8'}
-            # merge current with new headers
-            browser.session.headers = {**browser.session.headers, **headers}
-            browser.open(url_stock, method='post', data=formData)
-    except Exception as e:
-        print ("ERROR in file", fileName, 'and function' ,inspect.stack()[0][3], ':', str(e))
+if __name__ == "__main__":
+   # stuff only to run when not called via 'import' here
+   main()
 
 # setSbWatchlist
 # - get stock list to watch
