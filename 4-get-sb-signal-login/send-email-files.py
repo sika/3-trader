@@ -11,6 +11,7 @@ from email.utils import COMMASPACE, formatdate
 pathFile = os.path.dirname(os.path.abspath(__file__))
 sPathOutput = "/output/"
 sPathInput = "/input/"
+glo_file_this = os.path.basename(__file__)
 
 gloCredGmailAutotrading = 'credGmailAutotrading'
 
@@ -22,7 +23,7 @@ def getCredentials(domain):
             pwd = conf['gmail_autotrade']['password']
             return {'username': username, 'pwd': pwd}
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
 
 def send_mail(send_to, subject, text, files):
     try:
@@ -45,7 +46,7 @@ def send_mail(send_to, subject, text, files):
         smtp.close()
 
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e)) 
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e)) 
 
 files= [
 pathFile + sPathOutput + 'confirmationStatistics.csv',

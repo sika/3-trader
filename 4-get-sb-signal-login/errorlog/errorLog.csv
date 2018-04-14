@@ -58,3 +58,5 @@ DATE;TIME;DAY;ERROR_COUNTER;E_MSG;CALLING_FUNCTION
 2018-04-05;16:02;Thursday;1;'NoneType' object has no attribute 'find';sbGetSignal
 2018-04-05;16:08;Thursday;1;Can't convert 'int' object to str implicitly;setStockStatus
 2018-04-05;16:50;Thursday;1;local variable 'test' referenced before assignment;triggerError
+2018-04-09;10:45;Monday;1;'NoneType' object is not iterable;resetStockStatus
+2018-04-09;10:47;Monday;1;'NoneType' object does not support item assignment;resetStockStatus

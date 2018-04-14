@@ -1,36 +1,36 @@
   
 
 start = time.time()
-# temp_stockInfo_list = getStockList(pathInputThis + glo_stockInfo_file_raw_str)
+# temp_stockInfo_list = getStockList(pathInputThis + glo_stockInfo_file_raw)
 # # temp_stockInfo_list = getStockList(pathInputThis + 'stock-info-raw-4.csv')
-# setStockListGlobally(temp_stockInfo_list, glo_stockInfo_list_str)
+# setStockListGlobally(temp_stockInfo_list, glo_stockInfo_list_name)
 # print('temp_stockInfo_list:', len(temp_stockInfo_list))
 
-# temp_blacklist = getStockList(pathInputThis + glo_blacklist_file_str)
-# setStockListGlobally(temp_blacklist, glo_blacklist_str)
+# temp_blacklist = getStockList(pathInputThis + glo_blacklist_file)
+# setStockListGlobally(temp_blacklist, glo_blacklist_name)
 # print('temp_blacklist:', len(temp_blacklist))
 
-# temp_stockInfo_list = removeListFromList(temp_stockInfo_list, temp_blacklist)
+# temp_stockInfo_list = mod_shared.removeListFromList(temp_stockInfo_list, temp_blacklist)
 # print('temp_stockInfo_list:', len(temp_stockInfo_list))
 
-# temp_complimentary_list = getStockList(pathInputThis + glo_complimentary_file_str)
-# setStockListGlobally(temp_complimentary_list, glo_nn_complimentary_list_str)
+# temp_complimentary_list = getStockList(pathInputThis + glo_complimentary_file)
+# setStockListGlobally(temp_complimentary_list, glo_nn_complimentary_list_name)
 # print('temp_complimentary_list:', len(temp_complimentary_list))
 
 # temp_stockInfo_list = getStocksFromSb(temp_stockInfo_list)
 # print('temp_stockInfo_list:', len(temp_stockInfo_list))
 
-# temp_stockInfo_list = updateListFromList(temp_stockInfo_list, temp_complimentary_list) # list to update, list to update from
+# temp_stockInfo_list = mod_shared.mod_shared.updateListFromListByKeys(temp_stockInfo_list, temp_complimentary_list) # list to update, list to update from
 
 # temp_stockInfo_list = getStocksFromNn(temp_stockInfo_list)
 
-# writeStockList(temp_stockInfo_list, pathInputThis + glo_stockInfo_file_updated_str)
-# writeStockList(temp_stockInfo_list, pathOutput+glo_stockInfo_file_updated_str)
+# writeStockList(temp_stockInfo_list, pathInputThis + glo_stockInfo_file_updated)
+# writeStockList(temp_stockInfo_list, pathOutput+glo_stockInfo_file_updated)
 
 # time.sleep(5)
 
 # stockToBuy_list = filterStocksToWatch()
-# writeStockList(stockToBuy_list, pathInputThis+glo_stockToBuy_allData_file_str)
+# writeStockList(stockToBuy_list, pathInputThis+glo_stockToBuy_allData_file)
 
 # writeStockList(stockToBuy_list, pathInput+glo_stockToBuy_file_str)
 

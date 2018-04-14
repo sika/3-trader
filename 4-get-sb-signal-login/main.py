@@ -1,5 +1,5 @@
-import trader_shared as mod_shared
-import trader_create_stock_lists as mod_list
+import shared as mod_shared
+import create_stock_lists as mod_list
 from pdb import set_trace as BP
 import re
 from robobrowser import RoboBrowser
@@ -15,29 +15,23 @@ import time
 import datetime
 import csv
 import json
+from collections import OrderedDict
 from pprint import pprint
 from pprint import pformat
 
 # Static price update at setStockStatus?
 # Only use stop-loss?
-pathFile = os.path.dirname(os.path.abspath(__file__))
-glo_fileNameThis = os.path.basename(__file__)
+glo_file_this = os.path.basename(__file__)
 
 # --- Global variables
-# stock status keys
-glo_stockStatusList = []
 
 # stock status values
 glo_status_tempValue_ActiveNnSell = 'Sälj'
 glo_status_tempValue_ActiveNnBuy = 'Köp'
 glo_status_value_activeBuy = 'BUY'
 glo_status_value_activeSell = 'SELL'
-glo_status_value_activeDefault = ''
 glo_status_value_heldYes = 'YES'
-glo_status_value_heldDefault = ''
-glo_status_value_stocksAmountHeldDefault = ''
-glo_status_value_activeTempDefault = ''
-# gloStatus_Value_PriceDefault = ''
+glo_status_value_heldDefault = glo_status_value_activeDefault = glo_status_value_activeTempDefault = glo_status_value_amountHeldDefault = glo_status_value_priceDefault = glo_status_value_priceTempDefault = ''
 
 # payloadOrder- Keys
 glo_orderNn_key_identifier = 'identifier'
@@ -177,7 +171,7 @@ def writeOrderStatistics(sbStockNameShort, payloadOrder):
         statNameshortSb = 'NAMESHORT_SB'
         statSignal = 'SIGNAL'
         statPrice = 'PRICE'
-        file_orderStat = pathFile + mod_shared.pathOutput + 'orderStatistics.csv'
+        file_orderStat = mod_shared.path_base + mod_shared.pathOutput + 'orderStatistics.csv'
         file_exists = os.path.isfile(file_orderStat)
         with open (file_orderStat, 'a') as csvFile:
             fieldnames = [statDate, statTime, statDay, statNameshortSb, statSignal, statPrice]
@@ -191,13 +185,13 @@ def writeOrderStatistics(sbStockNameShort, payloadOrder):
                 statSignal: payloadOrder[glo_orderNn_key_side], 
                 statPrice: payloadOrder[glo_orderNn_key_price]})
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def writeConfirmationStatistics(sbStockNameShort, sbSignalType, sbSignalConf, sbLastPrice, sbPriceLevel):
     try:
         file_confStat = None
-        file_confStat = pathFile + mod_shared.pathOutput + glo_confStat_fileName_str
+        file_confStat = mod_shared.path_base + mod_shared.pathOutput + glo_confStat_fileName_str
         file_exists = os.path.isfile(file_confStat)
         with open (file_confStat, 'a') as csvFile:
             fieldnames = [glo_stat_key_date, 
@@ -223,14 +217,14 @@ def writeConfirmationStatistics(sbStockNameShort, sbSignalType, sbSignalConf, sb
                 glo_stat_key_priceDifference: str(round(100*(float(sbLastPrice)/float(sbPriceLevel)), 3))}
             writer.writerow(statDict)
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))   
 
 def isConfirmationStatSet(sbStockNameShort, sbSignalConf):
     try:
         file_confStat = None
-        file_confStat = pathFile + mod_shared.pathOutput + glo_confStat_fileName_str
-        file_exists = os.path.isfile(file_confStat)
+        file_confStat = mod_shared.path_base + mod_shared.pathOutput + glo_confStat_fileName_str
+        # file_exists = os.path.isfile(file_confStat)
         with open (file_confStat) as csvFile:
             rows = csv.DictReader(csvFile, delimiter=';')
             for row in rows:
@@ -242,130 +236,265 @@ def isConfirmationStatSet(sbStockNameShort, sbSignalConf):
                     return True
             return False
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))  
 
 # def initStockStatus():
-#     print ('\nSTART', inspect.stack()[0][3])
-#     try:
-#         with open(pathFile + mod_shared.pathInput_main + mod_shared.glo_stockToBuy_file, 'rt', encoding='ISO-8859-1') as file:
-#             records = csv.DictReader(file, delimiter=';')
-#             for row in records:
-#                 setStockList(row)
-#     except Exception as e:
-#             print ("ERROR in", inspect.stack()[0][3], ':', str(e))
-#             mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
-#     else:
-#         print('END', inspect.stack()[0][3], '\n')
+    #     print ('\nSTART', inspect.stack()[0][3])
+    #     try:
+    #         with open(mod_shared.path_base + mod_shared.pathInput_main + mod_shared.glo_stockToBuy_file, 'rt', encoding='ISO-8859-1') as file:
+    #             records = csv.DictReader(file, delimiter=';')
+    #             for row in records:
+    #                 setStockList(row)
+    #     except Exception as e:
+    #             print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+    #             mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
+    #     else:
+    #         print('END', inspect.stack()[0][3], '\n')
 
 def setStockList(rowDict):
     try:
-        global glo_stockStatusList
-        glo_stockStatusList.append(rowDict)
+        global glo_stockStatus_list
+        glo_stockStatus_list.append(rowDict)
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
-def setStockStatus():
-    print ('\nSTART', inspect.stack()[0][3])
+# def setStockStatus():
+#     print ('\nSTART', inspect.stack()[0][3])
+#     try:
+#         # Login into to Nordnet
+#         r, header, s = mod_shared.nordnetLogin() # login to nordnet
+
+#         # get amount available
+#         soup = BeautifulSoup(s.get('https://www.nordnet.se/mux/web/depa/mindepa/depaoversikt.html').content, 'html.parser')
+#         amountAvailableStr = soup.find("td", string="Tillgängligt").next_sibling.next_sibling.get_text().strip(' SEK')
+#         setAmountAvailableFromNn(int(float(amountAvailableStr)))
+
+
+#         resetStockStatus() 
+#         # Get held and number of stocks held
+#         stockTable = soup.find(id='aktier')
+#         stockHeldAndAmount = stockTable.find_all('tr', id=re.compile('tr')) # find <tr> where id='tr[x]'
+#         if stockHeldAndAmount:
+#             for stock in stockHeldAndAmount:
+#                 # get held
+#                nnStockName = stock.find(class_='truncate18').get_text(strip=True)
+#                setStockHeld(getSbNameShortByNnName(nnStockName)) #set Held
+#                # get number of stocks
+#                nnStockNumberOfStocks = stock.find_all('td')[3].get_text(strip=True)
+#                setStocksNumberHeld(getSbNameShortByNnName(nnStockName), nnStockNumberOfStocks) # set number held
+
+#         # set stock price
+#         # setStockPrice(s) # not needed if not cancelling order and placing new with new price 
+
+#         # get Active
+#         soup = BeautifulSoup(s.get('https://www.nordnet.se/mux/ajax/trade/orders/auto?accountNumber=18272500').content, 'html.parser') # active are placed in "share"
+#         newDict = json.loads(str(soup))
+#         newList = newDict.get('share')
+#         for item in newList:
+#             nnStockName = item.get('longName')
+#             nnStockActiveType = item.get('buyOrSell')
+#             if nnStockActiveType == glo_status_tempValue_ActiveNnBuy: #active BUY
+#                 setStockActive(getSbNameShortByNnName(nnStockName), glo_status_value_activeBuy) # set active
+#             elif nnStockActiveType == glo_status_tempValue_ActiveNnSell: #active SELL
+#                 setStockActive(getSbNameShortByNnName(nnStockName), glo_status_value_activeSell) # set active
+#     except Exception as e:
+#         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+#         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
+
+def getRemovalList(list_to_keep, list_to_remove, key_selector):
     try:
-        # Login into to Nordnet
-        r, header, s = mod_shared.nordnetLogin() # login to nordnet
-
-        # get amount available
-        soup = BeautifulSoup(s.get('https://www.nordnet.se/mux/web/depa/mindepa/depaoversikt.html').content, 'html.parser')
-        amountAvailableStr = soup.find("td", string="Tillgängligt").next_sibling.next_sibling.get_text().strip(' SEK')
-        setAmountAvailable(int(float(amountAvailableStr)))
-
-        # reset stock status: held; active; amount held
-        resetStockStatus() 
-        # Get held and number of stocks held
-        stockTable = soup.find(id='aktier')
-        stockHeldAndAmount = stockTable.find_all('tr', id=re.compile('tr')) # find <tr> where id='tr[x]'
-        if stockHeldAndAmount:
-            for stock in stockHeldAndAmount:
-                # get held
-               nnStockName = stock.find(class_='truncate18').get_text(strip=True)
-               setStockHeld(getSbNameShortByNnName(nnStockName)) #set Held
-               # get number of stocks
-               nnStockNumberOfStocks = stock.find_all('td')[3].get_text(strip=True)
-               setStocksNumberHeld(getSbNameShortByNnName(nnStockName), nnStockNumberOfStocks) # set number held
-
-        # set stock price
-        # setStockPrice(s) # not needed if not cancelling order and placing new with new price 
-
-        # get Active
-        soup = BeautifulSoup(s.get('https://www.nordnet.se/mux/ajax/trade/orders/auto?accountNumber=18272500').content, 'html.parser') # active are placed in "share"
-        newDict = json.loads(str(soup))
-        newList = newDict.get('share')
-        for item in newList:
-            nnStockName = item.get('longName')
-            nnStockActiveType = item.get('buyOrSell')
-            if nnStockActiveType == glo_status_tempValue_ActiveNnBuy: #active BUY
-                setStockActive(getSbNameShortByNnName(nnStockName), glo_status_value_activeBuy) # set active
-            elif nnStockActiveType == glo_status_tempValue_ActiveNnSell: #active SELL
-                setStockActive(getSbNameShortByNnName(nnStockName), glo_status_value_activeSell) # set active
+        removal_list = []
+        for dict_keep in list_to_keep:
+            for dict_remove in list_to_remove:
+                if dict_keep.get(key_selector) == dict_remove.get(key_selector):
+                    temp_ordered = OrderedDict()
+                    temp_ordered[key_selector] = dict_remove.get(key_selector)
+                    removal_list.append(temp_ordered)
+        return removal_list
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
-def resetStockStatus():
+def getStockStatus():
+    try:
+        # r, header, s = mod_shared.nordnetLogin() # login to nordnet
+
+        test = True
+        # test = False
+        
+        # get HELD
+        temp_nNHeld_list = []
+        if test:
+            temp_nNHeld_dict = OrderedDict()
+            temp_nNHeld_dict[mod_shared.glo_colName_nameNordnet] = 'G5 Entertainment AB'
+            temp_nNHeld_dict[mod_shared.glo_colName_amountHeld] = '100'
+            temp_nNHeld_list.append(temp_nNHeld_dict)
+            
+            temp_nNHeld_dict = OrderedDict()
+            temp_nNHeld_dict[mod_shared.glo_colName_nameNordnet] = 'Biotage AB'
+            temp_nNHeld_dict[mod_shared.glo_colName_amountHeld] = '100'
+            temp_nNHeld_list.append(temp_nNHeld_dict)
+        else:
+            soup = BeautifulSoup(s.get('https://www.nordnet.se/mux/web/depa/mindepa/depaoversikt.html', headers=mod_shared.glo_urlHeader).content, 'html.parser')
+            stockTable = soup.find(id='aktier')
+            stockHeldAndAmount = stockTable.find_all('tr', id=re.compile('tr')) # find <tr> where id='tr[x]'
+            if stockHeldAndAmount:
+                for stock in stockHeldAndAmount:
+                    temp_nNHeld_dict = {}
+                    nameNordnet = stock.find(class_='truncate18').get_text(strip=True)
+                    temp_nNHeld_dict[mod_shared.glo_colName_nameNordnet] = nameNordnet
+
+                    # get number of stocks
+                    amountHeld = stock.find_all('td')[3].get_text(strip=True)
+                    temp_nNHeld_dict[mod_shared.glo_colName_amountHeld] = amountHeld
+
+                    temp_nNHeld_list.append(temp_nNHeld_dict)
+
+        # get ACTIVE
+        temp_nNActive_list = []
+        if test:
+            temp_nNActive_dict = OrderedDict()
+            temp_nNActive_dict[mod_shared.glo_colName_nameNordnet] = 'Old Mutual Plc'
+            temp_nNActive_dict[mod_shared.glo_colName_active] = glo_status_value_activeBuy
+            temp_nNActive_list.append(temp_nNActive_dict)
+            
+            temp_nNActive_dict = OrderedDict()
+            temp_nNActive_dict[mod_shared.glo_colName_nameNordnet] = 'G5 Entertainment AB'
+            temp_nNActive_dict[mod_shared.glo_colName_active] = glo_status_value_activeSell
+            temp_nNActive_list.append(temp_nNActive_dict)
+        else:
+            soup = BeautifulSoup(s.get('https://www.nordnet.se/mux/ajax/trade/orders/auto?accountNumber=18272500', headers=mod_shared.glo_urlHeader).content, 'html.parser') # active are placed in "share"
+            newDict = json.loads(str(soup))
+            newList = newDict.get('share')
+            for item in newList:
+                temp_nNActive_dict = {}
+                temp_nNActive_dict[mod_shared.glo_colName_nameNordnet] = item.get('longName')
+                temp_nnStockActiveType = item.get('buyOrSell')
+                if temp_nnStockActiveType == glo_status_tempValue_ActiveNnBuy: #active BUY
+                    temp_nNActive_dict[mod_shared.glo_colName_active] = glo_status_value_activeBuy
+                elif temp_nnStockActiveType == glo_status_tempValue_ActiveNnSell: #active SELL
+                    temp_nNActive_dict[mod_shared.glo_colName_active] = glo_status_value_activeSell
+                temp_nNActive_list.append(temp_nNActive_dict)
+
+        # update held with active if same stock exist in both
+        list_of_key_selectors = [mod_shared.glo_colName_nameNordnet]
+        list_of_key_overwriters = [mod_shared.glo_colName_active]
+        temp_nNHeld_list = mod_shared.updateListFromListByKeys(temp_nNHeld_list, temp_nNActive_list, list_of_key_selectors, list_of_key_overwriters)
+        
+        key_selector = mod_shared.glo_colName_nameNordnet
+        removal_list = getRemovalList(temp_nNHeld_list, temp_nNActive_list, key_selector)
+
+        # add to new list if not existing in ACTIVE list
+        list_of_key_selectors = [mod_shared.glo_colName_nameNordnet]
+        temp_nNActive_list = mod_shared.removeListFromListByKey(temp_nNActive_list, removal_list, list_of_key_selectors)
+        
+        temp_stockStatus = temp_nNHeld_list + temp_nNActive_list
+        
+        return temp_stockStatus
+
+    except Exception as e:
+        print ("ERROR in file", glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+
+def setStockStatusFromNn():
+    try:
+        nNAmountAvailable_str = getAmountAvailableFromNn()
+        setAmountAvailable(int(float(nNAmountAvailable_str)))
+        
+        stocksToBuy_list = mod_shared.getStockListFromFile(mod_shared.path_input_main, mod_shared.glo_stockToBuy_file) 
+        stocksToBuy_list = resetStockStatus(stocksToBuy_list) # set default values to ACTIVE, AMOUNT_HELD etc
+        
+        nNHeldAndActive_list = getStockStatus()
+        
+        # update nNHeldAndActive_list to have all keys of stocksToBuy and values of stocks all updated
+        stocksAllUpdated_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, mod_shared.glo_stockInfo_file_updated) 
+        stockToBuy_keys = list(mod_shared.glo_stockToBuy_colNames.keys())
+        for dict_active_held in nNHeldAndActive_list:
+            for dict_all_stocks in stocksAllUpdated_list:
+                if dict_active_held.get(mod_shared.glo_colName_nameNordnet) == dict_all_stocks.get(mod_shared.glo_colName_nameNordnet):
+                    for key_to_buy in stockToBuy_keys:
+                        if key_to_buy not in dict_active_held: # only if key not already existing (to not overwrite held and active)
+                            if key_to_buy not in dict_all_stocks: # if key, like TEMP_ACTIVE not in all stocks, set to empty 
+                                dict_active_held[key_to_buy] = ''
+                            else:
+                                dict_active_held[key_to_buy] = dict_all_stocks[key_to_buy]
+        
+        # those existing in both, set value of dicts in nNHeldAndActive_list to stocksToBuy
+        list_of_key_selectors = [mod_shared.glo_colName_nameNordnet]
+        list_of_key_overwriters = list(mod_shared.glo_stockToBuy_colNames.keys())
+        stocksToBuy_list = mod_shared.updateListFromListByKeys(stocksToBuy_list, nNHeldAndActive_list, list_of_key_selectors, list_of_key_overwriters)
+
+        key_selector = mod_shared.glo_colName_nameNordnet
+        removal_list = getRemovalList(stocksToBuy_list, nNHeldAndActive_list, key_selector)
+
+        list_of_key_selectors = [mod_shared.glo_colName_nameNordnet]
+        nNHeldAndActive_list = mod_shared.removeListFromListByKey(nNHeldAndActive_list, removal_list, list_of_key_selectors)
+
+        stocksToBuy_list = stocksToBuy_list + nNHeldAndActive_list
+
+        return stocksToBuy_list
+    except Exception as e:
+        print ("ERROR in file", glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
+
+def resetStockStatus(stockStatus_list):
     print ('\n', inspect.stack()[0][3])
     try:
-        global glo_stockStatusList
-        temp_glo_stockStatusList = glo_stockStatusList
-        for row in temp_glo_stockStatusList:
-            row[mod_shared.glo_colName_held] = glo_status_value_heldDefault
+        for row in stockStatus_list:
             row[mod_shared.glo_colName_active] = glo_status_value_activeDefault
-            row[mod_shared.glo_colName_amountHeld] = glo_status_value_stocksAmountHeldDefault
-        glo_stockStatusList = temp_glo_stockStatusList
+            row[mod_shared.glo_colName_activeTemp] = glo_status_value_activeTempDefault
+            row[mod_shared.glo_colName_amountHeld] = glo_status_value_amountHeldDefault
+            row[mod_shared.glo_colName_price] = glo_status_value_priceDefault
+            row[mod_shared.glo_colName_priceTemp] = glo_status_value_priceTempDefault
+        return stockStatus_list
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setStockHeld(sbStockNameShort):
     print ('\n', inspect.stack()[0][3])
     try:
-        global glo_stockStatusList
-        temp_glo_stockStatusList = glo_stockStatusList
-        for row in temp_glo_stockStatusList:
+        global glo_stockStatus_list
+        temp_glo_stockStatus_list = glo_stockStatus_list
+        for row in temp_glo_stockStatus_list:
             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
                 row.update({mod_shared.glo_colName_held:glo_status_value_heldYes})
-        glo_stockStatusList = temp_glo_stockStatusList
+        glo_stockStatus_list = temp_glo_stockStatus_list
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def isStockHeld(sbStockNameShort):
     try:
-        global glo_stockStatusList
-        temp_glo_stockStatusList = glo_stockStatusList
-        for row in temp_glo_stockStatusList:
+        global glo_stockStatus_list
+        temp_glo_stockStatus_list = glo_stockStatus_list
+        for row in temp_glo_stockStatus_list:
             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort and row.get(mod_shared.glo_colName_held) == glo_status_value_heldYes:
                 return True
         return False # if no match
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setStocksNumberHeld(sbStockNameShort, amountStr):
     print ('\n', inspect.stack()[0][3])
     try:
-        global glo_stockStatusList
-        temp_glo_stockStatusList = glo_stockStatusList
-        for row in temp_glo_stockStatusList:
+        global glo_stockStatus_list
+        temp_glo_stockStatus_list = glo_stockStatus_list
+        for row in temp_glo_stockStatus_list:
             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
                 row.update({mod_shared.glo_colName_amountHeld:amountStr})
-        glo_stockStatusList = temp_glo_stockStatusList
+        glo_stockStatus_list = temp_glo_stockStatus_list
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getStocksNumberHeld(sbStockNameShort):
     try:
-        global glo_stockStatusList
-        temp_glo_stockStatusList = glo_stockStatusList
-        for row in temp_glo_stockStatusList:
+        global glo_stockStatus_list
+        temp_glo_stockStatus_list = glo_stockStatus_list
+        for row in temp_glo_stockStatus_list:
             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
                 if row.get(mod_shared.glo_colName_amountHeld) != '':
                     return row.get(mod_shared.glo_colName_amountHeld)
@@ -373,43 +502,43 @@ def getStocksNumberHeld(sbStockNameShort):
                     raise ValueError(inspect.stack()[0][3] + ': returned empty string')
                     return None
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 # def updateStocksNumberHeld(sbStockNameShort, numberOfStocksStr, sbSignalType): # subtract volume from current held
     # try:
-    #     global glo_stockStatusList
-    #     temp_glo_stockStatusList = glo_stockStatusList
+    #     global glo_stockStatus_list
+    #     temp_glo_stockStatus_list = glo_stockStatus_list
     #     if sbSignalType == glo_sbSignalBuy: #add stocks
-    #         for row in temp_glo_stockStatusList:
+    #         for row in temp_glo_stockStatus_list:
     #             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
     #                 newStockNumberHeld = str(eval('int(row.get(mod_shared.glo_colName_amountHeld))+int(numberOfStocksStr)'))
     #                 row.update({mod_shared.glo_colName_amountHeld:newStockNumberHeld})
     #     elif sbSignalType == glo_sbSignalSell: #subtract stocks
-    #         for row in temp_glo_stockStatusList:
+    #         for row in temp_glo_stockStatus_list:
     #             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
     #                 newStockNumberHeld = str(eval('int(row.get(mod_shared.glo_colName_amountHeld))-int(numberOfStocksStr)'))
     #                 row.update({mod_shared.glo_colName_amountHeld:newStockNumberHeld})
-    #     glo_stockStatusList = temp_glo_stockStatusList
+    #     glo_stockStatus_list = temp_glo_stockStatus_list
     # except Exception as e:
-    #     print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+    #     print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
 
 def setStockActive(sbStockNameShort, sbActiveType): #'BUY' or 'SELL'
     print ('\n', inspect.stack()[0][3])
     try:
-        global glo_stockStatusList
-        temp_glo_stockStatusList = glo_stockStatusList
-        for row in temp_glo_stockStatusList:
+        global glo_stockStatus_list
+        temp_glo_stockStatus_list = glo_stockStatus_list
+        for row in temp_glo_stockStatus_list:
             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
                 row.update({mod_shared.glo_colName_active:sbActiveType})
-        glo_stockStatusList = temp_glo_stockStatusList
+        glo_stockStatus_list = temp_glo_stockStatus_list
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def isStockActive(sbStockNameShort, sbActiveType):
     try:
-        for row in glo_stockStatusList:
+        for row in glo_stockStatus_list:
             if sbActiveType == glo_sbSignalBuy:
                 if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort and row.get(mod_shared.glo_colName_active) == glo_status_value_activeBuy:
                     return True
@@ -418,37 +547,37 @@ def isStockActive(sbStockNameShort, sbActiveType):
                     return True
         return False # if no match
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setStockActiveTemp(sbStockNameShort, sbActiveType):
     print ('\n', inspect.stack()[0][3])
     try:
-        global glo_stockStatusList
-        temp_glo_stockStatusList = glo_stockStatusList
-        for row in temp_glo_stockStatusList:
+        global glo_stockStatus_list
+        temp_glo_stockStatus_list = glo_stockStatus_list
+        for row in temp_glo_stockStatus_list:
             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
                 row.update({mod_shared.glo_colName_activeTemp:sbActiveType})
-        glo_stockStatusList = temp_glo_stockStatusList
+        glo_stockStatus_list = temp_glo_stockStatus_list
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def delStockActiveTemp(sbStockNameShort):
     try:
-        global glo_stockStatusList
-        temp_glo_stockStatusList = glo_stockStatusList
-        for row in temp_glo_stockStatusList:
+        global glo_stockStatus_list
+        temp_glo_stockStatus_list = glo_stockStatus_list
+        for row in temp_glo_stockStatus_list:
             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
                 row.update({mod_shared.glo_colName_activeTemp:glo_status_value_activeTempDefault})
-        glo_stockStatusList = temp_glo_stockStatusList
+        glo_stockStatus_list = temp_glo_stockStatus_list
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def isStockActiveTemp(sbStockNameShort, sbActiveType):
     try:
-        for row in glo_stockStatusList:
+        for row in glo_stockStatus_list:
             if sbActiveType == glo_sbSignalBuy:
                 if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort and row.get(mod_shared.glo_colName_activeTemp) == glo_status_value_activeBuy:
                     return True
@@ -457,14 +586,14 @@ def isStockActiveTemp(sbStockNameShort, sbActiveType):
                     return True
         return False # if no match
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 # def setStockPrice(s):
     # try:
-    #     global glo_stockStatusList
-    #     temp_glo_stockStatusList = glo_stockStatusList
-    #     for row in temp_glo_stockStatusList:
+    #     global glo_stockStatus_list
+    #     temp_glo_stockStatus_list = glo_stockStatus_list
+    #     for row in temp_glo_stockStatus_list:
     #         if row[mod_shared.glo_colName_activeTemp] != glo_status_value_activeTempDefault:
     #             urlNnStock = row.get(mod_shared.glo_colName_url_nn)
     #             r = s.get(urlNnStock)
@@ -474,36 +603,36 @@ def isStockActiveTemp(sbStockNameShort, sbActiveType):
     #             priceStockStr = soup.find(class_='tvaKnapp').parent.find_all('td')[2].get_text()
     #             priceStockStr = priceStockStr.replace(',', '.')
     #             row[mod_shared.glo_colName_price] = priceStockStr
-    #     glo_stockStatusList = temp_glo_stockStatusList
+    #     glo_stockStatus_list = temp_glo_stockStatus_list
     # except Exception as e:
-    #         print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+    #         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
 
 # def setStockPriceTemp(sbStockNameShort, orderNnValuePrice):
     # print ('\n', inspect.stack()[0][3])
     # try:
-    #     global glo_stockStatusList
-    #     temp_glo_stockStatusList = glo_stockStatusList
-    #     for row in temp_glo_stockStatusList:
+    #     global glo_stockStatus_list
+    #     temp_glo_stockStatus_list = glo_stockStatus_list
+    #     for row in temp_glo_stockStatus_list:
     #         if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
     #             row.update({mod_shared.glo_colName_priceTemp:orderNnValuePrice})
-    #     glo_stockStatusList = temp_glo_stockStatusList
+    #     glo_stockStatus_list = temp_glo_stockStatus_list
     # except Exception as e:
-    #     print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+    #     print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
 
 # def delStockPriceTemp(sbStockNameShort, orderNnValuePrice):
     # try:
     # except Exception as e:
-    #     print ("ERROR in", inspect.stack()[0][3], ':', str(e))    
+    #     print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))    
 
 def isStockPriceChanged(sbStockNameShort, sbSignalType):
     try:
-        temp_glo_stockStatusList = glo_stockStatusList
+        temp_glo_stockStatus_list = glo_stockStatus_list
         percentageChangeLimit = 0.5
         if sbSignalType == glo_sbSignalBuy:
-            for row in temp_glo_stockStatusList:
+            for row in temp_glo_stockStatus_list:
                 if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
-                    orderPrice = float(temp_glo_stockStatusList.get(mod_shared.glo_colName_priceTemp))
-                    newPrice = float(temp_glo_stockStatusList.get(mod_shared.glo_colName_price))
+                    orderPrice = float(temp_glo_stockStatus_list.get(mod_shared.glo_colName_priceTemp))
+                    newPrice = float(temp_glo_stockStatus_list.get(mod_shared.glo_colName_price))
                     decimalChange = newPrice / orderPrice
                     percentageChange = decimalChange * 100-100
                     if percentageChange > percentageChangeLimit:
@@ -511,10 +640,10 @@ def isStockPriceChanged(sbStockNameShort, sbSignalType):
                     else:
                         return False
         if sbSignalType == glo_sbSignalSell:
-            for row in temp_glo_stockStatusList:
+            for row in temp_glo_stockStatus_list:
                 if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
-                    orderPrice = float(temp_glo_stockStatusList.get(mod_shared.glo_colName_priceTemp))
-                    newPrice = float(temp_glo_stockStatusList.get(mod_shared.glo_colName_price)) 
+                    orderPrice = float(temp_glo_stockStatus_list.get(mod_shared.glo_colName_priceTemp))
+                    newPrice = float(temp_glo_stockStatus_list.get(mod_shared.glo_colName_price)) 
                     decrease = orderPrice - newPrice
                     decreasePercentage = (decrease / orderPrice) * 100
                     if decreasePercentage > percentageChangeLimit:
@@ -522,16 +651,16 @@ def isStockPriceChanged(sbStockNameShort, sbSignalType):
                     else:
                         return False
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getSbNameShortByNnName(nnStockName):
     try:
-        for row in glo_stockStatusList:
-            if row.get(mod_shared.glo_colName_NameNordnet) == nnStockName:
+        for row in glo_stockStatus_list:
+            if row.get(mod_shared.glo_colName_nameNordnet) == nnStockName:
                 return row.get(mod_shared.glo_colName_sbNameshort)
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
     else:
         msg = 'could not match', nnStockName, 'with', mod_shared.glo_colName_sbNameshort
@@ -550,7 +679,25 @@ def isMaxStockHeldAndActive():
         else:
             return False
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
+
+# def getAmountAvailableStaticFromNn(amountInt):
+#     print ('\n', inspect.stack()[0][3])
+#     try:
+#         global glo_amountAvailableStatic
+#         glo_amountAvailableStatic = amountInt
+#     except Exception as e:
+#         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+#         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
+
+def setAmountAvailable(amountInt):
+    print ('\n', inspect.stack()[0][3])
+    try:
+        global glo_amountAvailable
+        glo_amountAvailable = amountInt
+    except Exception as e:
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setAmountAvailableStatic(amountInt):
@@ -559,16 +706,7 @@ def setAmountAvailableStatic(amountInt):
         global glo_amountAvailableStatic
         glo_amountAvailableStatic = amountInt
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
-        mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
-
-def setAmountAvailable(amountInt):
-    print ('\n', inspect.stack()[0][3])
-    try:
-        global glo_amountAvailable
-        glo_amountAvailable = amountInt
-    except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def updateAmountAvailable(sbSignalType, payloadOrder):
@@ -587,7 +725,7 @@ def updateAmountAvailable(sbSignalType, payloadOrder):
             else:
                 glo_amountAvailable += int(float(payloadOrder.get(glo_orderNn_key_price)) * float(payloadOrder.get(glo_orderNn_key_volume)))
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getAmountAvailable():
@@ -599,43 +737,43 @@ def getAmountAvailable():
         else:
             return amountAvailable
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getCurrentNumberOfStocksHeld():
     try:
         counter = 0
-        temp_glo_stockStatusList = glo_stockStatusList
-        for row in temp_glo_stockStatusList:
+        temp_glo_stockStatus_list = glo_stockStatus_list
+        for row in temp_glo_stockStatus_list:
             if row.get(mod_shared.glo_colName_held) == glo_status_value_heldYes:
                 counter += 1
         return counter
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getCurrentNumberOfStocksActiveBuy():
     try:
         counter = 0
-        temp_glo_stockStatusList = glo_stockStatusList
-        for row in temp_glo_stockStatusList:
+        temp_glo_stockStatus_list = glo_stockStatus_list
+        for row in temp_glo_stockStatus_list:
             if row.get(mod_shared.glo_colName_activeTemp) == glo_status_value_activeBuy:
                 counter += 1
         return counter
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getCurrentNumberOfStocksActiveSell():
     try:
         counter = 0
-        temp_glo_stockStatusList = glo_stockStatusList
-        for row in temp_glo_stockStatusList:
+        temp_glo_stockStatus_list = glo_stockStatus_list
+        for row in temp_glo_stockStatus_list:
             if row.get(mod_shared.glo_colName_activeTemp) == glo_status_value_activeSell:
                 counter += 1
         return counter
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setMaxNumberOfStocks(numberOfStocksInt):
@@ -644,7 +782,7 @@ def setMaxNumberOfStocks(numberOfStocksInt):
         global glo_maxNumberOfStocks
         glo_maxNumberOfStocks = numberOfStocksInt
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getMaxNumberOfStocks():
@@ -652,7 +790,7 @@ def getMaxNumberOfStocks():
         maxNumberOfStocks = glo_maxNumberOfStocks
         return maxNumberOfStocks
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setMaxNumberOfActiveAboveMaxHeld(numberOfStocksInt):
@@ -661,7 +799,7 @@ def setMaxNumberOfActiveAboveMaxHeld(numberOfStocksInt):
         global glo_maxNumberOfActiveAboveMaxHeld
         glo_maxNumberOfActiveAboveMaxHeld = numberOfStocksInt
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getMaxNumberOfActiveAboveMaxHeld():
@@ -669,7 +807,7 @@ def getMaxNumberOfActiveAboveMaxHeld():
         maxNumberOfActiveAboveMaxHeld = glo_maxNumberOfActiveAboveMaxHeld
         return maxNumberOfActiveAboveMaxHeld
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getNnStockPrice(sbStockNameShort, sbSignalType, s):
@@ -677,7 +815,7 @@ def getNnStockPrice(sbStockNameShort, sbSignalType, s):
         sellPercentageChange = 5
         sellDecimalChange = sellPercentageChange/100
         urlNnStock = None
-        for row in glo_stockStatusList:
+        for row in glo_stockStatus_list:
             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
                 urlNnStock = row.get(mod_shared.glo_colName_url_nn)
                 break
@@ -695,7 +833,7 @@ def getNnStockPrice(sbStockNameShort, sbSignalType, s):
         elif sbSignalType == glo_sbSignalBuy:
             return priceStockStr
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e)) 
 
 def getNnStockVolume(orderNnValuePriceStr):
@@ -711,7 +849,7 @@ def getNnStockVolume(orderNnValuePriceStr):
         orderNnValueVolumeStr = str(int(amountAvailableInt / (maxNumberOfStocksInt + maxNumberOfActiveAboveMaxHeldInt - currentNumberOfTotalHeldAndActive) / orderNnValuePriceFloat))
         return orderNnValueVolumeStr
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getNnStockValidUntil():
@@ -737,7 +875,7 @@ def getNnStockValidUntil():
         return orderNnStockValidUntil
         # if not marketopen, valid until next day open
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getPayloadOrderValues(sbStockNameShort, sbSignalType, orderNnValuePrice):
@@ -760,7 +898,7 @@ def getPayloadOrderValues(sbStockNameShort, sbSignalType, orderNnValuePrice):
             glo_orderNn_key_volume: orderNnValueVolume,
             glo_orderNn_key_validUntil: orderNnValueValidUntil
         }
-        for row in glo_stockStatusList:
+        for row in glo_stockStatus_list:
             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
                 payloadOrder.update({glo_orderNn_key_identifier:row.get(mod_shared.glo_colName_identifier_id), 
                     glo_orderNn_key_marketId:row.get(mod_shared.glo_colName_market_id), 
@@ -768,7 +906,7 @@ def getPayloadOrderValues(sbStockNameShort, sbSignalType, orderNnValuePrice):
                 return payloadOrder
         return None
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))  
 
 def isWeekDay():
@@ -878,30 +1016,30 @@ def isLastPriceWithinBuyLevel(sbPriceLevelStr, sbLastPriceStr, sbStockNameShort)
         else:
             return False
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))   
 
-def createPidFile():
+def createPidFile(path_rel, name_of_file):
     print ('\nSTART', inspect.stack()[0][3])
     try:
         pidInt = os.getpid()
-        file_pid = pathFile + mod_shared.glo_pidFile_str
+        file_pid = mod_shared.path_base + path_rel + name_of_file
         with open(file_pid, "w") as file:
             file.write(str(pidInt))
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def resetTempActive():
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        global glo_stockStatusList
-        temp_glo_stockStatusList = glo_stockStatusList
-        for row in temp_glo_stockStatusList:
+        global glo_stockStatus_list
+        temp_glo_stockStatus_list = glo_stockStatus_list
+        for row in temp_glo_stockStatus_list:
             row[mod_shared.glo_colName_activeTemp] = glo_status_value_activeTempDefault
-        glo_stockStatusList = temp_glo_stockStatusList
+        glo_stockStatus_list = temp_glo_stockStatus_list
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))   
 
 def resetDaily():
@@ -915,7 +1053,7 @@ def resetDaily():
         global glo_errorCounter
         glo_errorCounter = 0
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))   
 
 def nordnetPlaceOrder(sbStockNameShort, sbSignalType): #sbSignalType = BUY or SELL
@@ -955,7 +1093,7 @@ def nordnetPlaceOrder(sbStockNameShort, sbSignalType): #sbSignalType = BUY or SE
             }
             mod_shared.writeErrorLog(inspect.stack()[0][3], pformat(responseDict))
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
     else:
         print('END', inspect.stack()[0][3], '\n')
@@ -984,7 +1122,7 @@ def pretendNordnetPlaceOrder(sbStockNameShort, sbSignalType):
         # else:
         #     print('PRETEND order FAILED!')
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
     else:
         print('END', inspect.stack()[0][3], '\n')    
@@ -1038,7 +1176,7 @@ def sbGetSignal_afterMarketHours():
                         # pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
                         nordnetPlaceOrder(sbStockNameShort, sbSignal)
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
     else:
         print('END', inspect.stack()[0][3], '\n')
@@ -1106,7 +1244,7 @@ def sbGetSignal():
                             pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
                             # nordnetPlaceOrder(sbStockNameShort, sbSignal)
     except Exception as e:
-        print ("ERROR in", inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
     else:
         print('END', inspect.stack()[0][3], '\n')    
@@ -1116,29 +1254,73 @@ def triggerError():
     try:
         test = test
     except Exception as e:
-        print ("ERROR in file", glo_fileNameThis, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ("ERROR in file", glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
     else:
         print('END', inspect.stack()[0][3], '\n')
+
+def getAmountAvailableFromNn():
+    try:
+        r, header, s = mod_shared.nordnetLogin() # login to nordnet
+
+        # get amount available
+        soup = BeautifulSoup(s.get('https://www.nordnet.se/mux/web/depa/mindepa/depaoversikt.html', headers=mod_shared.glo_urlHeader).content, 'html.parser')
+        amountAvailable_str = soup.find("td", string="Tillgängligt").next_sibling.next_sibling.get_text().strip(' SEK')
+    except Exception as e:
+        print ("ERROR in file", glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
+    else:
+        return amountAvailable_str
+
 
 schedule.every().day.at("19:00").do(resetDaily) # remove activetemp (active intraday orders not gone through are removed after closing)
 schedule.every().day.at("19:45").do(sbGetSignal_afterMarketHours)
 schedule.every().day.at("20:00").do(sbGetSignal_afterMarketHours) # repeat in case failure at first
 schedule.every().day.at("22:00").do(resetDaily)
 
-# for surverying script (in case of crash)
+# --------------
+# - separate files for
+#     - trader
+#     - create new lists
+#     - reset Watchlist
+#     - trader-monitor
+#     (- send email files)
+# - if stock to buy older than x: 
+#     - get new stocks auto
+#     - rest Watchlist
+# - during run: every x day: get new stocks auto
+#     - get new stocks auto
+#     - rest Watchlist
+
+# --------------
+
 # triggerError()
-createPidFile()
-# # initOrderStatTemp()
+
+# for surverying script (in case of crash)
+createPidFile(mod_shared.path_input_monitorProcess, mod_shared.glo_pid_file)
+
 setMaxNumberOfStocks(5)
 setMaxNumberOfActiveAboveMaxHeld(2)
-# # Leave empty or remove to use real value
+
+# Leave empty or remove to use real value
 setAmountAvailableStatic(140)
-# initStockStatus()
-stockStatusList = mod_list.getStockListFromFile(mod_shared.pathInput_main, mod_shared.glo_stockToBuy_file) #path, fileName
-BP()
-pass
-# setStockStatus()
+
+
+while True:
+    pass
+# !!!!! in test mode below
+# setStockStatusFromNn()
+
+
+# always use 'User-Agent' header
+
+# mod_shared.setStockListGlobally(stocksToBuy_list, )
+# stocksAllUpdated_list = mod_list.getStockListFromFile(mod_shared.pathInput_main, mod_list.glo_stockInfo_file_updated) #path, fileName
+
+# nNHeldAndActive_list = getAndSetStockStatus(stocksAllUpdated_list, stocksToBuy_list) # set amountAvailable; get list of stocks held and active
+# merge with stock to buy list
+# stocksToBuy_list = mod_shared.mod_shared.updateListFromListByKeys(stocksToBuy_list, nNHeldAndActive_list) # list_to_update, list_to_update_from (merge and get rid of duplicates)
+
 # while True:
 #     schedule.run_pending()
 #     if isMarketOpenNow():
@@ -1152,7 +1334,7 @@ pass
 #     if glo_dummyCounter < 3:
 #         print('glo_dummyCounter:', glo_dummyCounter)
 #         sbGetSignal()
-#         pprint(glo_stockStatusList)
+#         pprint(glo_stockStatus_list)
 #         glo_dummyCounter += 1
 #         time.sleep(30)
 
@@ -1225,16 +1407,16 @@ print ('END of script')
 
 
 # setNumberOfStocksHeld():
-        # temp_glo_stockStatusList = []
-        # for row in glo_stockStatusList:
+        # temp_glo_stockStatus_list = []
+        # for row in glo_stockStatus_list:
         #     if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
         #         tempDict = row
         #         tempDict[mod_shared.glo_colName_amountHeld] = amountStr
-        #         temp_glo_stockStatusList.append(row)
+        #         temp_glo_stockStatus_list.append(row)
         #     else:
-        #         temp_glo_stockStatusList.append(row)
-        # global glo_stockStatusList
-        # glo_stockStatusList = temp_glo_stockStatusList
+        #         temp_glo_stockStatus_list.append(row)
+        # global glo_stockStatus_list
+        # glo_stockStatus_list = temp_glo_stockStatus_list
 # def getPayloadOrderValuesPretend(sbStockNameShort, sbSignalType, priceStockStr):
 #     try:
 #         # orderNnValuePrice = getNnStockPrice(sbStockNameShort, sbSignalType)
@@ -1254,7 +1436,7 @@ print ('END of script')
 #             glo_orderNn_key_volume: orderNnValueVolume,
 #             glo_orderNn_key_validUntil: orderNnValueValidUntil
 #         }
-#         for row in glo_stockStatusList:
+#         for row in glo_stockStatus_list:
 #             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
 #                 payloadOrder.update({glo_orderNn_key_identifier:row.get(mod_shared.glo_colName_identifier_id), 
 #                     glo_orderNn_key_marketId:row.get(mod_shared.glo_colName_market_id), 
@@ -1262,12 +1444,12 @@ print ('END of script')
 #                 return payloadOrder
 #         return None
 #     except Exception as e:
-#             print ("ERROR in", inspect.stack()[0][3], ':', str(e))   
+#             print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))   
 
 # def getNnStockPricePretend(sbStockNameShort, sbSignalType, s):
 #     try:
 #         urlNnStock = None
-#         for row in glo_stockStatusList:
+#         for row in glo_stockStatus_list:
 #             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
 #                 urlNnStock = row.get(mod_shared.glo_colName_url_nn)
 #                 break
@@ -1285,7 +1467,7 @@ print ('END of script')
 #         elif sbSignalType == glo_sbSignalBuy:
 #             return priceStockStr
 #     except Exception as e:
-#             print ("ERROR in", inspect.stack()[0][3], ':', str(e)) 
+#             print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e)) 
                 # setStockStatus() # only non-tempActive will pass down here
 
                     # if isStockActiveLongTime((sbStockNameShort, sbSignal))
@@ -1299,8 +1481,8 @@ print ('END of script')
 
 # def sendEmailIfActive():
 #     try:
-#         temp_glo_stockStatusList = glo_stockStatusList
-#         for row in temp_glo_stockStatusList:
+#         temp_glo_stockStatus_list = glo_stockStatus_list
+#         for row in temp_glo_stockStatus_list:
 #             if row.get(mod_shared.glo_colName_active) != glo_status_value_activeDefault:
 #                 sbj = row.get(mod_shared.glo_colName_sbNameshort) + ' is active: ' + row.get(mod_shared.glo_colName_active)
 #                 body = pformat(row)
