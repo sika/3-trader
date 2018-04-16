@@ -414,25 +414,25 @@ def filterStocksToWatch():
     try:
         temp_glo_filteredStockInfo_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, mod_shared.glo_stockInfo_file_updated)
         columnsToFloat_list = [mod_shared.glo_colName_price, 
-        mod_shared.glo_colName_6_percent,
-        mod_shared.glo_colName_6_value,
-        mod_shared.glo_colName_12_percent,
-        mod_shared.glo_colName_12_value,
-        mod_shared.glo_colName_24_percent,
-        mod_shared.glo_colName_24_value,
-        mod_shared.glo_colName_percentAverage,
-        mod_shared.glo_colName_valueAverage,
-        mod_shared.glo_colName_24_buys_correct_percent,
-        mod_shared.glo_colName_buysTotal,
-        mod_shared.glo_colName_percentChange_highestThroughCurrent,
-        mod_shared.glo_colName_pricePercentChange_average,
-        mod_shared.glo_colName_pricePercentChange_median,
-        mod_shared.glo_colName_buyAverageFailedPerChange,
-        mod_shared.glo_colName_buyMedianFailedPerChange,
-        mod_shared.glo_colName_buyAverageSuccessPerChange,
-        mod_shared.glo_colName_buyMedianSuccessPerChange,
-        mod_shared.glo_colName_buyAndFailMedian_keyValue,
-        mod_shared.glo_colName_buyAndFailAverage_keyValue
+            mod_shared.glo_colName_6_percent,
+            mod_shared.glo_colName_6_value,
+            mod_shared.glo_colName_12_percent,
+            mod_shared.glo_colName_12_value,
+            mod_shared.glo_colName_24_percent,
+            mod_shared.glo_colName_24_value,
+            mod_shared.glo_colName_percentAverage,
+            mod_shared.glo_colName_valueAverage,
+            mod_shared.glo_colName_24_buys_correct_percent,
+            mod_shared.glo_colName_buysTotal,
+            mod_shared.glo_colName_percentChange_highestThroughCurrent,
+            mod_shared.glo_colName_pricePercentChange_average,
+            mod_shared.glo_colName_pricePercentChange_median,
+            mod_shared.glo_colName_buyAverageFailedPerChange,
+            mod_shared.glo_colName_buyMedianFailedPerChange,
+            mod_shared.glo_colName_buyAverageSuccessPerChange,
+            mod_shared.glo_colName_buyMedianSuccessPerChange,
+            mod_shared.glo_colName_buyAndFailMedian_keyValue,
+            mod_shared.glo_colName_buyAndFailAverage_keyValue
         ]
 
         temp_glo_filteredStockInfo_list = stringToFLoat(temp_glo_filteredStockInfo_list, columnsToFloat_list)
@@ -550,8 +550,14 @@ def addKeyToOrderedDict(list_to_update, list_of_keys):
 def setAllStockLists():
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        temp_stockInfo_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList,  mod_shared.glo_stockInfo_file_raw)
-        # temp_stockInfo_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, 'stock-info-raw-4.csv')
+        # test_bool = False
+        test_bool = True
+        test_str = 'test-'
+        if test_bool:
+            print(inspect.stack()[0][3], 'in TEST MODE!')
+            temp_stockInfo_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, 'stock-info-raw-4.csv')
+        else:
+            temp_stockInfo_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList,  mod_shared.glo_stockInfo_file_raw)
         print('temp_stockInfo_list:', len(temp_stockInfo_list))
         
         temp_blacklist = mod_shared.getStockListFromFile(mod_shared.path_input_createList, mod_shared.glo_blacklist_file)
@@ -575,8 +581,11 @@ def setAllStockLists():
             list_of_key_overwriters) # list to update, list to update from
         
         temp_stockInfo_list = getStocksFromNn(temp_stockInfo_list)
-
-        writeStockList(temp_stockInfo_list, mod_shared.path_input_createList + mod_shared.glo_stockInfo_file_updated)
+        
+        if test_bool:
+            writeStockList(temp_stockInfo_list, mod_shared.path_input_createList + test_str+mod_shared.glo_stockInfo_file_updated)
+        else:
+            writeStockList(temp_stockInfo_list, mod_shared.path_input_createList + mod_shared.glo_stockInfo_file_updated)
     except Exception as e:
         print ("ERROR in file", glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
     else:
@@ -585,12 +594,22 @@ def setAllStockLists():
 def setStockToBuyList():
     print ('\nSTART', inspect.stack()[0][3])
     try:
+        # test_bool = False
+        test_bool = True
+        test_str = 'test-'
+
         stockToBuy_list = filterStocksToWatch()
-        writeStockList(stockToBuy_list, mod_shared.path_input_createList+mod_shared.glo_stockToBuy_allData_file)
+        if test_bool:
+            print(inspect.stack()[0][3], 'in TEST MODE!')
+            writeStockList(stockToBuy_list, mod_shared.path_input_createList + test_str+mod_shared.glo_stockToBuy_allData_file)
+        else:
+            writeStockList(stockToBuy_list, mod_shared.path_input_createList+mod_shared.glo_stockToBuy_allData_file)
 
         stockToBuy_list = mod_shared.setListKeys(stockToBuy_list, mod_shared.glo_stockToBuy_colNames)
-        
-        writeStockList(stockToBuy_list, mod_shared.path_input_main+mod_shared.glo_stockToBuy_file)
+        if test_bool:
+            writeStockList(stockToBuy_list, mod_shared.path_input_main + test_str+mod_shared.glo_stockToBuy_file)
+        else:
+            writeStockList(stockToBuy_list, mod_shared.path_input_main+mod_shared.glo_stockToBuy_file)
     except Exception as e:
         print ("ERROR in file", glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
     else:
@@ -605,9 +624,8 @@ def main():
     except Exception as e:
         print ("ERROR in file", glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
 
-# only run when script explicitly run
+# only run when script explicitly called
 if __name__ == "__main__":
-   # stuff only to run when not called via 'import' here
    main()
 
 # setSbWatchlist
@@ -622,50 +640,3 @@ if __name__ == "__main__":
 # - set new watchlist
 # - confirm new watchlist match with new stock list
 
-# def clearSbWatchlist():
-#     print ('\nSTART', inspect.stack()[0][3])
-#     try:
-#         # Login in to SB, return browser object
-#         browser = sbLogin()
-
-#         # Find and go to Watchlist
-#         link = browser.find('a', href=re.compile('Watchlist')) # find Watchlist link
-#         link = browser.follow_link(link)
-
-#         form = browser.get_form() # get form for deleteAll (one big shared form)
-#         browser.submit_form(form, submit=form['ctl00$MainContent$DeleteAll']) # delete all watchlist
-
-#     except Exception as e:
-#         print ("ERROR in file", glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
-
-# def setSbWatchlist():
-#     print ('\nSTART', inspect.stack()[0][3])
-#     try:
-#         # Login in to SB, return browser object
-#         browser = sbLogin()
-
-#         url_base = 'https://www.swedishbulls.com/members/'
-#         for row in stockToBuy_list:
-#             # get non-member URL from list and format to member URL
-#             url_stock = row.get(glo_stockInfoColName_url_sb)
-#             url_stock_rel = url_stock[29:]
-#             url_stock = url_base + url_stock_rel
-
-#             browser.open(url_stock)
-
-#             # set form payload
-#             formData = {'ctl00$ScriptManager1': 'ctl00$MainContent$UpdatePanel1|ctl00$MainContent$AddtoWatchlist',
-#             '__EVENTTARGET': 'ctl00$MainContent$AddtoWatchlist',
-#             '__EVENTARGUMENT': 'Click',
-#             '__ASYNCPOST': 'true'}
-#             # add new headers
-#             headers = {'Referer' : 'https://www.swedishbulls.com/members/SignalPage.aspx?lang=en&Ticker=TETY.ST',
-#             'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36',
-#             'X-MicrosoftAjax' : 'Delta=true',
-#             'X-Requested-With' : 'XMLHttpRequest',
-#             'Content-Type' : 'application/x-www-form-urlencoded; charset=UTF-8'}
-#             # merge current with new headers
-#             browser.session.headers = {**browser.session.headers, **headers}
-#             browser.open(url_stock, method='post', data=formData)
-#     except Exception as e:
-#         print ("ERROR in file", glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))

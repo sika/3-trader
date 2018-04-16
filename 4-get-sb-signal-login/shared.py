@@ -10,15 +10,6 @@ import datetime
 import csv
 from collections import OrderedDict
 from pprint import pprint
-# from bs4 import BeautifulSoup
-# import re
-# import datetime
-# import time
-# import fnmatch
-# from statistics import median
-# from collections import OrderedDict
-# from  more_itertools import unique_everseen
-# from pprint import pformat
 
 # paths
 path_base = os.path.dirname(os.path.abspath(__file__))
@@ -84,7 +75,7 @@ glo_stockStatus_list = []
 glo_stockStatus_list_name = 'glo_stockStatus_list'
 
 # mainly create lists
-glo_stockInfo_list_name = 'glo_stockInfo_list'
+# glo_stockInfo_list_name = 'glo_stockInfo_list'
 glo_nn_complimentary_list_name = 'glo_nn_complimentary_list'
 glo_blacklist_name = 'glo_blacklist'
 
@@ -104,6 +95,8 @@ glo_sbLoginFormUser = 'ctl00$MainContent$uEmail'
 glo_sbLoginFormPass = 'ctl00$MainContent$uPassword'
 glo_sbLoginFormSubmit = 'ctl00$MainContent$btnSubmit'
 
+glo_clearWatchlist = 'ctl00$MainContent$DeleteAll'
+
 glo_counter_error = 0
 
 def incrCounterError():
@@ -111,13 +104,15 @@ def incrCounterError():
         global glo_counter_error
         glo_counter_error += 1
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))    
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))    
 
 def getCounterError():
     try:
         return glo_counter_error
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))    
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))    
 
 def writeErrorLog (callingFunction, eStr):
     print ('\nSTART', inspect.stack()[0][3])
@@ -180,6 +175,7 @@ def getCredentials(domain):
             return {'username': username, 'pwd': pwd}
     except Exception as e:
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
 
 def sbLogin():
     print ('\nSTART', inspect.stack()[0][3])
@@ -194,6 +190,7 @@ def sbLogin():
         browser.submit_form(form, submit=form[glo_sbLoginFormSubmit])
     except Exception as e: # catch error
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
     else:
         print('END', inspect.stack()[0][3], '\n')
         return (browser)
@@ -235,7 +232,7 @@ def nordnetLogin():
     except Exception as e: # catch error
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         msg = 'status code: ' + r.status_code + '; ' + r.text
-        # writeErrorLog(inspect.stack()[0][3], msg)
+        writeErrorLog(inspect.stack()[0][3], msg)
     else:
         print('END', inspect.stack()[0][3], '\n')
         return (r, header, s)
@@ -273,6 +270,17 @@ def getTimestampCustomStr(custom):
 def getDateTodayCustomStr(custom):
     return datetime.date.today().strftime(custom)
 
+def getSecondsFromTime(days, hours, minutes, seconds):
+    try:
+        day_sec = 24*60*60
+        hour_sec = 60*60
+        min_sec = 60
+        
+        return days*day_sec + hours*hour_sec + minutes*min_sec + seconds
+    except Exception as e:
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
 def getTimestamp():
     return datetime.datetime.now()
 
@@ -284,7 +292,8 @@ def getOrderedDictFromDict(dictTemp, order_of_keys_list):
         list_of_tuples = [(key, dictTemp[key]) for key in order_of_keys_list]
         return OrderedDict(list_of_tuples)
     except Exception as e:
-        print ('ERROR in', inspect.stack()[0][3], ':', str(e)) 
+        print ('ERROR in', inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e)) 
 
 def updateListFromListByKeys(list_to_update, list_to_update_from, list_of_key_selectors, list_of_key_overwriters):
     try:
@@ -298,19 +307,8 @@ def updateListFromListByKeys(list_to_update, list_to_update_from, list_of_key_se
                         break
         return list_to_update
     except Exception as e:
-        print ('ERROR in', inspect.stack()[0][3], ':', str(e)) 
-
-# def mod_shared.removeListFromList(listToKeep, listToRemove):
-#     try:
-#         new_list = list(listToKeep) # create new list rather than assigning reference
-#         for itemToKeep in listToKeep:
-#             for itemToRemove in listToRemove:
-#                 if itemToKeep[mod_shared.glo_colName_sbNameshort] == itemToRemove[mod_shared.glo_colName_sbNameshort]:
-#                     new_list.remove(itemToKeep)
-#                     break
-#         return new_list
-#     except Exception as e:
-#         print ('ERROR in', inspect.stack()[0][3], ':', str(e))
+        print ('ERROR in', inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e)) 
 
 def removeListFromListByKey(list_to_keep, list_to_remove, list_of_key_selectors):
     try:
@@ -322,25 +320,34 @@ def removeListFromListByKey(list_to_keep, list_to_remove, list_of_key_selectors)
                     if dict_remove.get(key) == dict_keep.get(key):
                         not_in_list = False
             if not_in_list:
-                print(dict_keep)# does not exist
                 unique_list.append(dict_keep)
         return unique_list
-        # for item_to_keep in list_to_keep:
-        #     for item_to_remove in list_to_remove:
-        #         for key_selector in list_of_key_selectors:
-        #             if item_to_keep[key_selector] == item_to_remove[key_selector]:
-        #                 list_to_keep.remove(item_to_keep)
-        # return list_to_keep
     except Exception as e:
         print ('ERROR in', inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setStockListGlobally(temp_list, name_of_list):
     try:
-        if name_of_list == glo_stockInfo_list_name:
-            global glo_stockInfo_list
-            glo_stockInfo_list = temp_list
+        # if name_of_list == glo_stockInfo_list_name:
+        #     global glo_stockInfo_list
+        #     glo_stockInfo_list = temp_list
+        if name_of_list == glo_stockStatus_list_name:
+            global glo_stockStatus_list
+            glo_stockStatus_list = temp_list
     except Exception as e:
         print ('ERROR in', inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
+
+def getGlobalList(name_of_list):
+    try:
+        # if name_of_list == glo_stockInfo_list_name:
+        #     global glo_stockInfo_list
+        #     glo_stockInfo_list = temp_list
+        if name_of_list == glo_stockStatus_list_name:
+            return glo_stockStatus_list
+    except Exception as e:
+        print ('ERROR in', inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getStockListFromFile(path_rel, name_of_list):
     try:
@@ -355,6 +362,7 @@ def getStockListFromFile(path_rel, name_of_list):
             return temp_list
     except Exception as e:
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getColNamesFromFile(rel_path_of_file, file_name):
     try:
@@ -368,6 +376,7 @@ def getColNamesFromFile(rel_path_of_file, file_name):
             return ordered_dict
     except Exception as e:
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setListKeys(list_to_set, dict_set_from):
     try:
@@ -396,6 +405,7 @@ def setListKeys(list_to_set, dict_set_from):
 
     except Exception as e:
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setGlobalColNames():
     try:
@@ -413,11 +423,13 @@ def setGlobalColNames():
 
     except Exception as e:
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
 
 def main():
     try:
         setGlobalColNames()
     except Exception as e:
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))
 
 main()
