@@ -990,7 +990,7 @@ def resetTempActive():
         local_glo_stockStatus_list = mod_shared.getGlobalList(mod_shared.glo_stockStatus_list_name)
         for row in local_glo_stockStatus_list:
             row[mod_shared.glo_colName_activeTemp] = glo_status_value_activeTempDefault
-        setStockListGlobally(local_glo_stockStatus_list, mod_shared.glo_stockStatus_list_name)
+        mod_shared.setStockListGlobally(local_glo_stockStatus_list, mod_shared.glo_stockStatus_list_name)
     except Exception as e:
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))   
