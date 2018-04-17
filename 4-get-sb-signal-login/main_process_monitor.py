@@ -3,7 +3,6 @@ from pdb import set_trace as BP
 import os
 import inspect
 import time
-import yaml
 import smtplib
 
 glo_file_this = os.path.basename(__file__)
@@ -39,10 +38,10 @@ def monitorPidNumber():
                     print('errorCounter:', str(errorCounter))
                     print(pidNumberInt, 'does NOT exist! Trying restart')
                     mod_shared.sendEmail('script might have CRASHED - trying restart attempt '+ str(errorCounter) + '/'+ str(errorCounterLimit) +' in ' + str(secondsToSleepFail) + ' seconds', '')
-                    print('sleeping', str(secondsToSleepFail), 'seconds')
-                    time.sleep(secondsToSleepFail)
                     command='python3'
                     os.system(command + ' ' + mod_shared.glo_fileToRunIfCrash_main)
+                    print('sleeping', str(secondsToSleepFail), 'seconds')
+                    time.sleep(secondsToSleepFail)
                     getPidFileNumber()
                     errorCounter += 1
                     continue

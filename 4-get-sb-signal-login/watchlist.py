@@ -30,6 +30,7 @@ def setSbWatchlist(stocksToBuy_list):
     try:
         # Login in to SB, return browser object
         browser = mod_shared.sbLogin()
+        print('setting watchlist...')
         test_bool = False
         # test_bool = True
         test_counter = 0
@@ -38,7 +39,6 @@ def setSbWatchlist(stocksToBuy_list):
         for row in stocksToBuy_list:
             print(row.get(mod_shared.glo_colName_sbNameshort))
             # get non-member URL from list and format to member URL
-            # url_stock = row.get(glo_stockInfoColName_url_sb)
             url_base = 'https://www.swedishbulls.com/members/'
 
             url_stock = row.get(mod_shared.glo_colName_url_sb)
@@ -71,6 +71,8 @@ def setSbWatchlist(stocksToBuy_list):
     except Exception as e:
         print ("ERROR in file", glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
+    else:
+        print('END', inspect.stack()[0][3], '\n')
 
 def getUnconfirmedWatchlist(stock_list):
     try:
@@ -100,7 +102,7 @@ def getUnconfirmedWatchlist(stock_list):
 
 def main(stocksToBuy_list):
     try:
-        # clearSbWatchlist()
+        clearSbWatchlist()
         setSbWatchlist(stocksToBuy_list)
         stocks_not_confirmed = getUnconfirmedWatchlist(stocksToBuy_list)
         while stocks_not_confirmed: # will run while stocks still not on watchlist

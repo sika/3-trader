@@ -74,6 +74,10 @@ glo_sb_arrow_total_list = [
     glo_sbArrowDown_orange,
     glo_sbArrowDown_red]
 glo_sb_arrow_confirmedBuyOrSell_list = [
+    # glo_sbArrowUp_green,
+    # glo_sbArrowUp_yellow,
+    # glo_sbArrowUp_orange,
+    # glo_sbArrowUp_red,
     glo_sbArrowDown_green,
     glo_sbArrowDown_yellow,
     glo_sbArrowDown_orange,
@@ -285,10 +289,10 @@ def getRemovalList(list_to_keep, list_to_remove, key_selector):
 
 def getStockStatus():
     try:
-        # r, header, s = mod_shared.nordnetLogin() # login to nordnet
+        r, header, s = mod_shared.nordnetLogin() # login to nordnet
 
-        test = True
-        # test = False
+        # test = True
+        test = False
         
         # get HELD
         temp_nNHeld_list = []
@@ -360,7 +364,6 @@ def getStockStatus():
         nNHeld_nNActive_merged = temp_nNHeld_list + temp_nNActive_list
         
         return nNHeld_nNActive_merged
-
     except Exception as e:
         print ("ERROR in file", glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
@@ -422,24 +425,11 @@ def resetStockStatus(stockStatus_list):
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
-# def setStockHeld(sbStockNameShort):
-#     print ('\n', inspect.stack()[0][3])
-#     try:
-#         global glo_stockStatus_list
-#         temp_glo_stockStatus_list = glo_stockStatus_list
-#         for row in temp_glo_stockStatus_list:
-#             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
-#                 row.update({mod_shared.glo_colName_held:glo_status_value_heldYes})
-#         glo_stockStatus_list = temp_glo_stockStatus_list
-#     except Exception as e:
-#         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
-#         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
-
 def isStockHeld(sbStockNameShort):
     try:
         local_glo_stockStatus_list = mod_shared.getGlobalList(mod_shared.glo_stockStatus_list_name)
         for row in local_glo_stockStatus_list:
-            if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort and row.get(mod_shared.glo_colName_held) == glo_status_value_heldYes:
+            if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort and row.get(mod_shared.glo_colName_amountHeld) != glo_status_value_amountHeldDefault:
                 return True
         return False # if no match
     except Exception as e:
@@ -713,7 +703,7 @@ def getCurrentNumberOfStocksHeld():
         counter = 0
         local_glo_stockStatus_list = mod_shared.getGlobalList(mod_shared.glo_stockStatus_list_name)
         for row in local_glo_stockStatus_list:
-            if row.get(mod_shared.glo_colName_held) == glo_status_value_heldYes:
+            if row.get(mod_shared.glo_colName_amountHeld) != glo_status_value_amountHeldDefault:
                 counter += 1
         return counter
     except Exception as e:
@@ -745,7 +735,6 @@ def getCurrentNumberOfStocksActiveSell():
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setMaxNumberOfStocks(numberOfStocksInt):
-    print ('\n', inspect.stack()[0][3])
     try:
         global glo_maxNumberOfStocks
         glo_maxNumberOfStocks = numberOfStocksInt
@@ -761,7 +750,6 @@ def getMaxNumberOfStocks():
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setMaxNumberOfActiveAboveMaxHeld(numberOfStocksInt):
-    print ('\n', inspect.stack()[0][3])
     try:
         global glo_maxNumberOfActiveAboveMaxHeld
         glo_maxNumberOfActiveAboveMaxHeld = numberOfStocksInt
@@ -1000,8 +988,6 @@ def resetTempActive():
     print ('\nSTART', inspect.stack()[0][3])
     try:
         local_glo_stockStatus_list = mod_shared.getGlobalList(mod_shared.glo_stockStatus_list_name)
-        global glo_stockStatus_list
-        temp_glo_stockStatus_list = glo_stockStatus_list
         for row in local_glo_stockStatus_list:
             row[mod_shared.glo_colName_activeTemp] = glo_status_value_activeTempDefault
         setStockListGlobally(local_glo_stockStatus_list, mod_shared.glo_stockStatus_list_name)
@@ -1015,10 +1001,13 @@ def resetDaily():
     try:
         # set active temp to empty
         resetTempActive()
-        setStockStatus()
+        # setStockStatus()
+        stocksToBuy_list = setAndGetStockStatusFromNn()
+        mod_shared.setStockListGlobally(stocksToBuy_list, mod_shared.glo_stockStatus_list_name)
+        if isStockFileOlderThanCondition(glo_timeConditionRerunStockFile, mod_shared.glo_stockToBuy_file):
+            mod_list.main()
         # reset error counter
-        global glo_errorCounter
-        glo_errorCounter = 0
+        mod_shared.resetCounterError()
     except Exception as e:
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))   
@@ -1037,8 +1026,8 @@ def nordnetPlaceOrder(sbStockNameShort, sbSignalType): #sbSignalType = BUY or SE
             print('payloadOrder returned None, aborting Order')
             return None
 
-        # test_bool = False
-        test_bool = True
+        test_bool = False
+        # test_bool = True
         if test_bool:
             print(inspect.stack()[0][3], 'is in TEST MODE - aborting order')
             pprint(payloadOrder)
@@ -1174,11 +1163,23 @@ def sbGetSignal():
         rowWatchlist = browser.find_all('tr', id=re.compile('MainContent_SignalListGrid1_DXDataRow')) #find all <tr> in Watchlist
         if rowWatchlist is not None:
             for row in rowWatchlist:
+                # test = True
+                test = False
                 sbStockNameShort = row.td.a.get_text()
                 sbLastPrice = row.find_all('td')[12].get_text()
                 sbBenchmarkPrice = row.find_all('td')[8].get_text()
                 sbSignal = row.find_all('td')[10].img['src'] # ex "../img/DOWNRed.png" or "[...]ONWHITE[...]""
                 sbSignalConf = sbSignal[7:-4] # remove first 7 and last 4 chars (for stat use) -> ex: "DOWNRed"
+
+                if test:
+                    sbStockNameShort = 'DIVI-B.NGM'
+                    # sbLastPrice = row.find_all('td')[12].get_text()
+                    sbLastPrice = '0.3280'
+                    # sbBenchmarkPrice = row.find_all('td')[8].get_text()
+                    sbBenchmarkPrice = '0.3470'
+                    # sbSignal = row.find_all('td')[10].img['src'] # ex "../img/DOWNRed.png" or "[...]ONWHITE[...]""
+                    sbSignal = '../img/DOWNRed.png' # ex "../img/DOWNRed.png" or "[...]ONWHITE[...]""
+                    sbSignalConf = sbSignal[7:-4] # remove first 7 and last 4 chars (for stat use) -> ex: "DOWNRed"
 
                 # confirmation statistics
                 if sbSignal.find('UP') != -1:
@@ -1187,7 +1188,7 @@ def sbGetSignal():
                     sbSignal = glo_sbSignalSell
                 else:
                     continue # sbSignal does not contain 'UP' or 'DOWN'; could ex be 'ONWhite'
-
+                
                 # set stat log
                 if not isConfirmationStatSet(sbStockNameShort, sbSignalConf):
                     writeConfirmationStatistics(sbStockNameShort, sbSignal, sbSignalConf, sbLastPrice, sbBenchmarkPrice) 
@@ -1201,7 +1202,7 @@ def sbGetSignal():
                 for item in glo_sb_arrow_confirmedBuyOrSell_list:
                     if item == sbSignalConf:
                         confirmed_stat = True
-                
+
                 if confirmed_stat == True:
                     if sbSignal == glo_sbSignalBuy:
                         if (
@@ -1220,8 +1221,8 @@ def sbGetSignal():
                             isStockActive(sbStockNameShort, sbSignal)
                             ):
                             print ('found', sbStockNameShort, glo_sbSignalSell)
-                            pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
-                            # nordnetPlaceOrder(sbStockNameShort, sbSignal)
+                            # pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
+                            nordnetPlaceOrder(sbStockNameShort, sbSignal)
     except Exception as e:
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
@@ -1331,19 +1332,13 @@ stocksToBuy_list = setAndGetStockStatusFromNn()
 mod_shared.setStockListGlobally(stocksToBuy_list, mod_shared.glo_stockStatus_list_name)
 
 # clear and set new watchlist:
-# mod_watch.main(stocksToBuy_list)
+mod_watch.main(stocksToBuy_list)
 
-nordnetPlaceOrder('ACTI.ST', 'BUY')
-pprint(mod_shared.getGlobalList(mod_shared.glo_stockStatus_list_name))
-
-# TODO:
-# - resetDaily
-
-# while True:
-#     schedule.run_pending()
-#     if isMarketOpenNow():
-#         sbGetSignal()
-#         time.sleep(120)
+while True:
+    schedule.run_pending()
+    if isMarketOpenNow():
+        sbGetSignal()
+        time.sleep(120)
 
 # # for testing:
 # while True:

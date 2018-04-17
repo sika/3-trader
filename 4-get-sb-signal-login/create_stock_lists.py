@@ -550,8 +550,8 @@ def addKeyToOrderedDict(list_to_update, list_of_keys):
 def setAllStockLists():
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        # test_bool = False
-        test_bool = True
+        test_bool = False
+        # test_bool = True
         test_str = 'test-'
         if test_bool:
             print(inspect.stack()[0][3], 'in TEST MODE!')
@@ -594,8 +594,8 @@ def setAllStockLists():
 def setStockToBuyList():
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        # test_bool = False
-        test_bool = True
+        test_bool = False
+        # test_bool = True
         test_str = 'test-'
 
         stockToBuy_list = filterStocksToWatch()

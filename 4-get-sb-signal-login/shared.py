@@ -18,6 +18,7 @@ path_input = '/input/'
 path_input_main = path_input + 'main/'
 path_input_createList = path_input + 'create-stock-lists/'
 path_input_monitorProcess = path_input + 'main-process-monitor/'
+path_input_template = path_input + 'templates/'
 
 # files
 glo_file_this = os.path.basename(__file__)
@@ -41,7 +42,7 @@ glo_colName_market_id = 'MARKET_ID'
 glo_colName_identifier_id = 'IDENTIFIER_ID'
 glo_colName_url_sb = 'URL_SB'
 glo_colName_url_nn = 'URL_NN'
-glo_colName_held = 'HELD'
+# glo_colName_held = 'HELD'
 glo_colName_active = 'ACTIVE'
 glo_colName_activeTemp = 'ACTIVE_TEMP'
 glo_colName_amountHeld = 'AMOUNT_HELD'
@@ -114,6 +115,14 @@ def getCounterError():
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))    
 
+def resetCounterError():
+    try:
+        global glo_counter_error
+        glo_counter_error += 0
+    except Exception as e:
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))    
+
 def writeErrorLog (callingFunction, eStr):
     print ('\nSTART', inspect.stack()[0][3])
     try:
@@ -178,7 +187,7 @@ def getCredentials(domain):
         writeErrorLog(inspect.stack()[0][3], str(e))
 
 def sbLogin():
-    print ('\nSTART', inspect.stack()[0][3])
+    # print ('\nSTART', inspect.stack()[0][3])
     try:
         browser = RoboBrowser(history=True)
         browser.open('https://www.swedishbulls.com/Signin.aspx?lang=en')
@@ -192,11 +201,11 @@ def sbLogin():
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
     else:
-        print('END', inspect.stack()[0][3], '\n')
+        # print('END', inspect.stack()[0][3], '\n')
         return (browser)
 
 def nordnetLogin():
-    print ('\nSTART', inspect.stack()[0][3])    
+    # print ('\nSTART', inspect.stack()[0][3])    
     try:
         s = requests.session()
         
@@ -234,7 +243,7 @@ def nordnetLogin():
         msg = 'status code: ' + r.status_code + '; ' + r.text
         writeErrorLog(inspect.stack()[0][3], msg)
     else:
-        print('END', inspect.stack()[0][3], '\n')
+        # print('END', inspect.stack()[0][3], '\n')
         return (r, header, s)
 
 # def nordnetLogout(s):
@@ -409,15 +418,15 @@ def setListKeys(list_to_set, dict_set_from):
 
 def setGlobalColNames():
     try:
-        dict_colNames = getColNamesFromFile(path_input_createList, glo_complimentary_file) # path, file
+        dict_colNames = getColNamesFromFile(path_input_template, glo_complimentary_file) # path, file
         global glo_complimentary_colNames
         glo_complimentary_colNames = dict_colNames
 
-        dict_colNames = getColNamesFromFile(path_input_createList, glo_stockInfo_file_updated) # path, file
+        dict_colNames = getColNamesFromFile(path_input_template, glo_stockInfo_file_updated) # path, file
         global glo_stockInfoUpdated_colNames
         glo_stockInfoUpdated_colNames = dict_colNames
 
-        dict_colNames = getColNamesFromFile(path_input_main, glo_stockToBuy_file) # path, file
+        dict_colNames = getColNamesFromFile(path_input_template, glo_stockToBuy_file) # path, file
         global glo_stockToBuy_colNames
         glo_stockToBuy_colNames = dict_colNames
 
