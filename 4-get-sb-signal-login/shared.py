@@ -245,30 +245,6 @@ def nordnetLogin():
         # print('END', inspect.stack()[0][3], '\n')
         return (r, header, s)
 
-# def nordnetLogout(s):
-    #     try:
-    #         url = 'https://www.nordnet.se/mux/ajax/session/logout.html'
-    #         header = {
-    #             'Accept': 'text/javascript, text/html, application/xml, text/xml, */*',
-    #             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36',
-    #             'X-Prototype-Version': '1.7',
-    #             'X-Requested-With': 'XMLHttpRequest',
-    #         }
-            
-    #         r = s.post(url, headers=header)
-    #         if r.status_code != 200:
-    #             print(url, 'failed!')
-    #             print('status_code:', r.status_code)
-    #             print('text:', r.text)
-    #         # response header:
-    #         # Set-cookie: NOW=none; path=/; expires=Tue, 15-Apr-2008 10:44:29 GMT; secure; HttpOnly
-    #     except Exception as e: # catch error
-    #         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
-    #         msg = 'status code: ' + r.status_code + '; ' + r.text
-    #         # writeErrorLog(inspect.stack()[0][3], msg)
-    #     else:
-    #         print('END', inspect.stack()[0][3], '\n')
-
 def getDateTodayStr():
     return datetime.date.today().strftime('%Y-%m-%d')
 

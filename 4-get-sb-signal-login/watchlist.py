@@ -9,7 +9,7 @@ import os
 glo_file_this = os.path.basename(__file__)
 
 def clearSbWatchlist():
-    print ('\nSTART', inspect.stack()[0][3])
+    print (inspect.stack()[0][3])
     try:
         # Login in to SB, return browser object
         browser = mod_shared.sbLogin()

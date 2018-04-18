@@ -10,7 +10,6 @@ import requests
 import sys
 from bs4 import BeautifulSoup
 import inspect
-# import smtplib
 import schedule
 import time
 import datetime
@@ -774,10 +773,10 @@ def getNnStockPrice(sbStockNameShort, sbSignalType, s):
             if row.get(mod_shared.glo_colName_sbNameshort) == sbStockNameShort:
                 urlNnStock = row.get(mod_shared.glo_colName_url_nn)
                 break
-        r = s.get(urlNnStock)
+        r = s.get(urlNnStock, headers=mod_shared.glo_urlHeader)
         if r.status_code != 200:
             print(r.url, 'failed!')
-        soup = BeautifulSoup(s.get(r.url).content, 'html.parser')
+        soup = BeautifulSoup(r.content, 'html.parser')
         priceStockStr = soup.find(class_='tvaKnapp').parent.find_all('td')[2].get_text()
         priceStockStr = priceStockStr.replace(',', '.')
         #get number of decimals to match stock (should be dynamic since number can be either 2 or 3)
@@ -1178,7 +1177,8 @@ def sbGetSignal():
                     # sbBenchmarkPrice = row.find_all('td')[8].get_text()
                     sbBenchmarkPrice = '0.3470'
                     # sbSignal = row.find_all('td')[10].img['src'] # ex "../img/DOWNRed.png" or "[...]ONWHITE[...]""
-                    sbSignal = '../img/DOWNRed.png' # ex "../img/DOWNRed.png" or "[...]ONWHITE[...]""
+                    # sbSignal = '../img/DOWNRed.png' # ex "../img/DOWNRed.png" or "[...]ONWHITE[...]""
+                    sbSignal = '../img/UPRed.png' # ex "../img/DOWNRed.png" or "[...]ONWHITE[...]""
                     sbSignalConf = sbSignal[7:-4] # remove first 7 and last 4 chars (for stat use) -> ex: "DOWNRed"
 
                 # confirmation statistics
@@ -1296,18 +1296,6 @@ schedule.every().day.at("20:00").do(sbGetSignal_afterMarketHours) # repeat in ca
 schedule.every().day.at("22:00").do(resetDaily)
 
 # --------------
-# - separate files for
-#     - trader
-#     - create new lists
-#     - reset Watchlist
-#     - trader-monitor
-#     (- send email files)
-# - if stock to buy older than x: 
-#     - get new stocks auto
-#     - rest Watchlist
-# - during run: every x day: get new stocks auto
-#     - get new stocks auto
-#     - rest Watchlist
 
 # always use 'User-Agent' header
 
@@ -1332,7 +1320,7 @@ stocksToBuy_list = setAndGetStockStatusFromNn()
 mod_shared.setStockListGlobally(stocksToBuy_list, mod_shared.glo_stockStatus_list_name)
 
 # clear and set new watchlist:
-mod_watch.main(stocksToBuy_list)
+# mod_watch.main(stocksToBuy_list)
 
 while True:
     schedule.run_pending()
