@@ -21,6 +21,10 @@ glo_colValue_notAvailable = 'N/A'
 
 glo_iterations_limit = 1000
 
+glo_test_bool = True
+# glo_test_bool = False
+glo_test_str = 'test-'
+
 def setFilteredStockList(rowDict):
     try:
         global glo_filteredStockInfo_list
@@ -400,46 +404,40 @@ def getStocksFromNn(temp_stockInfo_list):
     except Exception as e:
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
 
-def stringToFLoat(temp_glo_filteredStockInfo_list, columnsToFloat_list):
+# def stringToFLoat(temp_glo_filteredStockInfo_list, columnsToFloat_list):
+#     try:
+#         for row in temp_glo_filteredStockInfo_list:
+#             for column in columnsToFloat_list:
+#                 if row[column]: #true if string is not empty 
+#                     row[column] = float(row[column])
+#         return temp_glo_filteredStockInfo_list
+#     except Exception as e:
+#         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e)) 
+
+def stringToFLoat(list_to_convert, list_of_key_exceptions):
     try:
-        for row in temp_glo_filteredStockInfo_list:
-            for column in columnsToFloat_list:
-                if row[column]: #true if string is not empty 
-                    row[column] = float(row[column])
-        return temp_glo_filteredStockInfo_list
+        for row in list_to_convert:
+            for key in row:
+                if key not in list_of_key_exceptions:
+                    try:
+                        row[key] = float(row[key])
+                    except ValueError:
+                        pass
+        return list_to_convert
     except Exception as e:
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))   
 
-def filterStocksToWatch():
+def filterStocksToWatch(local_glo_stockInfoUpdated_list):
     try:
-        temp_glo_filteredStockInfo_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, mod_shared.glo_stockInfo_file_updated)
-        columnsToFloat_list = [mod_shared.glo_colName_price, 
-            mod_shared.glo_colName_6_percent,
-            mod_shared.glo_colName_6_value,
-            mod_shared.glo_colName_12_percent,
-            mod_shared.glo_colName_12_value,
-            mod_shared.glo_colName_24_percent,
-            mod_shared.glo_colName_24_value,
-            mod_shared.glo_colName_percentAverage,
-            mod_shared.glo_colName_valueAverage,
-            mod_shared.glo_colName_24_buys_correct_percent,
-            mod_shared.glo_colName_buysTotal,
-            mod_shared.glo_colName_percentChange_highestThroughCurrent,
-            mod_shared.glo_colName_pricePercentChange_average,
-            mod_shared.glo_colName_pricePercentChange_median,
-            mod_shared.glo_colName_buyAverageFailedPerChange,
-            mod_shared.glo_colName_buyMedianFailedPerChange,
-            mod_shared.glo_colName_buyAverageSuccessPerChange,
-            mod_shared.glo_colName_buyMedianSuccessPerChange,
-            mod_shared.glo_colName_buyAndFailMedian_keyValue,
-            mod_shared.glo_colName_buyAndFailAverage_keyValue
+        list_of_key_exceptions = [
+            mod_shared.glo_colName_market_id,
+            mod_shared.glo_colName_identifier_id
         ]
-
-        temp_glo_filteredStockInfo_list = stringToFLoat(temp_glo_filteredStockInfo_list, columnsToFloat_list)
+        local_glo_stockInfoUpdated_list = stringToFLoat(local_glo_stockInfoUpdated_list, list_of_key_exceptions)
         # GROUP1: Stable
         # filter out minimum x percent buy correct
         temp_glo_filteredStockInfo_group1_list = filterFilteredStockInfo(mod_shared.glo_colName_24_buys_correct_percent, 
-            65, temp_glo_filteredStockInfo_list)
+            65, local_glo_stockInfoUpdated_list)
 
         # filter out minumum x buyAndFail_median_keyvalue
         temp_glo_filteredStockInfo_group1_list = filterFilteredStockInfo(mod_shared.glo_colName_buyAndFailMedian_keyValue, 
@@ -479,7 +477,7 @@ def filterStocksToWatch():
 
         # GROUP2: High risk
         # remove empty cells
-        temp_glo_filteredStockInfo_group2_list = filterFilteredStockInfo(mod_shared.glo_colName_buyAndFailAverage_keyValue, '', temp_glo_filteredStockInfo_list)
+        temp_glo_filteredStockInfo_group2_list = filterFilteredStockInfo(mod_shared.glo_colName_buyAndFailAverage_keyValue, '', local_glo_stockInfoUpdated_list)
         # sort highest AVERAGE (overall) percent change
         sorted_buyAndFail_average_keyvalue_list = []
         sorted_buyAndFail_average_keyvalue_list = sorted(temp_glo_filteredStockInfo_group2_list, 
@@ -550,10 +548,10 @@ def addKeyToOrderedDict(list_to_update, list_of_keys):
 def setAllStockLists():
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        test_bool = False
-        # test_bool = True
-        test_str = 'test-'
-        if test_bool:
+        # test_bool = False
+        # glo_test_bool = True
+        # glo_test_str = 'test-'
+        if glo_test_bool:
             print(inspect.stack()[0][3], 'in TEST MODE!')
             temp_stockInfo_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, 'stock-info-raw-4.csv')
         else:
@@ -563,18 +561,19 @@ def setAllStockLists():
         temp_blacklist = mod_shared.getStockListFromFile(mod_shared.path_input_createList, mod_shared.glo_blacklist_file)
         print('temp_blacklist:', len(temp_blacklist))
 
-        # remove rows blacklist from stockInfo list
-        temp_stockInfo_list = [dict_item for dict_item in temp_stockInfo_list if dict_item not in temp_blacklist]
-
-        print('temp_stockInfo_list:', len(temp_stockInfo_list))
         temp_complimentary_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, mod_shared.glo_complimentary_file)
         print('temp_complimentary_list:', len(temp_complimentary_list))
+        
+        # remove rows blacklist from stockInfo list
+        temp_stockInfo_list = [dict_item for dict_item in temp_stockInfo_list if dict_item not in temp_blacklist]
+        print('temp_stockInfo_list after blacklist removal:', len(temp_stockInfo_list))
 
         temp_stockInfo_list = getStocksFromSb(temp_stockInfo_list)
-        print('temp_stockInfo_list:', len(temp_stockInfo_list))
 
+        # updating items from complimentary list to temp_stockInfo_list
         list_of_key_selectors = [mod_shared.glo_colName_sbNameshort]
-        list_of_key_overwriters = list(temp_complimentary_list[0].keys())
+        # list_of_key_overwriters = list(temp_complimentary_list[0].keys())
+        list_of_key_overwriters = list(mod_shared.glo_complimentary_colNames.keys())
         temp_stockInfo_list = mod_shared.updateListFromListByKeys(temp_stockInfo_list,
             temp_complimentary_list,
             list_of_key_selectors, 
@@ -582,8 +581,10 @@ def setAllStockLists():
         
         temp_stockInfo_list = getStocksFromNn(temp_stockInfo_list)
         
-        if test_bool:
-            writeStockList(temp_stockInfo_list, mod_shared.path_input_createList + test_str+mod_shared.glo_stockInfo_file_updated)
+        temp_stockInfo_list = mod_shared.setListKeys(temp_stockInfo_list, mod_shared.glo_stockInfoUpdated_colNames)
+
+        if glo_test_bool:
+            writeStockList(temp_stockInfo_list, mod_shared.path_input_createList + glo_test_str+mod_shared.glo_stockInfo_file_updated)
         else:
             writeStockList(temp_stockInfo_list, mod_shared.path_input_createList + mod_shared.glo_stockInfo_file_updated)
     except Exception as e:
@@ -594,20 +595,20 @@ def setAllStockLists():
 def setStockToBuyList():
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        test_bool = False
-        # test_bool = True
-        test_str = 'test-'
+        if glo_test_bool:
+            local_glo_stockInfoUpdated_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, glo_test_str+mod_shared.glo_stockInfo_file_updated)
+        else:
+            local_glo_stockInfoUpdated_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, mod_shared.glo_stockInfo_file_updated)
 
-        stockToBuy_list = filterStocksToWatch()
-        if test_bool:
+        stockToBuy_list = filterStocksToWatch(local_glo_stockInfoUpdated_list)
+        if glo_test_bool:
             print(inspect.stack()[0][3], 'in TEST MODE!')
-            writeStockList(stockToBuy_list, mod_shared.path_input_createList + test_str+mod_shared.glo_stockToBuy_allData_file)
+            writeStockList(stockToBuy_list, mod_shared.path_input_createList + glo_test_str+mod_shared.glo_stockToBuy_allData_file)
         else:
             writeStockList(stockToBuy_list, mod_shared.path_input_createList+mod_shared.glo_stockToBuy_allData_file)
-
         stockToBuy_list = mod_shared.setListKeys(stockToBuy_list, mod_shared.glo_stockToBuy_colNames)
-        if test_bool:
-            writeStockList(stockToBuy_list, mod_shared.path_input_main + test_str+mod_shared.glo_stockToBuy_file)
+        if glo_test_bool:
+            writeStockList(stockToBuy_list, mod_shared.path_input_main + glo_test_str+mod_shared.glo_stockToBuy_file)
         else:
             writeStockList(stockToBuy_list, mod_shared.path_input_main+mod_shared.glo_stockToBuy_file)
     except Exception as e:
