@@ -1320,7 +1320,7 @@ stocksToBuy_list = setAndGetStockStatusFromNn()
 mod_shared.setStockListGlobally(stocksToBuy_list, mod_shared.glo_stockStatus_list_name)
 
 # clear and set new watchlist:
-# mod_watch.main(stocksToBuy_list)
+mod_watch.main(stocksToBuy_list)
 
 while True:
     schedule.run_pending()
