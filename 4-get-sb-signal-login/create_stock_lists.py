@@ -9,6 +9,8 @@ import re
 from statistics import median
 from  more_itertools import unique_everseen
 import time
+import json
+import datetime
 from collections import OrderedDict
 from pprint import pprint
 from pprint import pformat
@@ -17,10 +19,16 @@ glo_file_this = os.path.basename(__file__)
 
 glo_costOfBuy = 0.8
 
+glo_nn_history_time = 'time'
+glo_nn_history_closing = 'last'
+
+glo_sb_history_date = 'date'
+glo_sb_history_price = 'price'
+glo_sb_history_signal = 'signal'
+
 glo_colValue_notAvailable = 'N/A'
 
-glo_iterations_limit = 1000
-
+glo_test_iteration_limit = 10
 glo_test_bool = True
 # glo_test_bool = False
 glo_test_str = 'test-'
@@ -119,10 +127,13 @@ def getStocksFromSb(temp_stockInfo_list):
     print ('\nSTART', inspect.stack()[0][3])
     try:
         counter = 2
+        if glo_test_bool:
+            print(inspect.stack()[0][3], 'in TEST MODE!')
         with requests.Session() as s:
             for row in temp_stockInfo_list:
-                if counter > glo_iterations_limit:
-                    break
+                if glo_test_bool:
+                    if counter > glo_test_iteration_limit:
+                        break
                 sbNameshort = row.get(mod_shared.glo_colName_sbNameshort)
                 print (counter, ':' ,sbNameshort)
                 counter += 1
@@ -136,6 +147,7 @@ def getStocksFromSb(temp_stockInfo_list):
                 if url_response.find('SignalPage') == -1:
                     print('NOT FOUND, skipping:', r.url)
                     continue
+
                 soup = BeautifulSoup(r.content, 'html.parser')
 
                 # break if stock's last signal is QUIT
@@ -158,6 +170,19 @@ def getStocksFromSb(temp_stockInfo_list):
                     print('price_last_close FAILED')
                     print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
                     pass
+
+                # get dates with signal with price
+                list_of_dicts_priceHistory = []
+                rows_months_24 = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory24_DXDataRow"))
+                for stock_date in rows_months_24:
+                    # date
+                    date_history = stock_date.contents[1].get_text()
+                    # price
+                    price_history = stock_date.contents[2].get_text()
+                    # signal
+                    signal_history = stock_date.contents[3].get_text()
+
+                    list_of_dicts_priceHistory.append({'date': date_history, 'price': price_history, 'signal': signal_history})
 
                 # get value and total percent correct for last 6 months
                 all_imgTags_6_month = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory6_cell"))
@@ -328,7 +353,8 @@ def getStocksFromSb(temp_stockInfo_list):
                 (mod_shared.glo_colName_buyAndFailMedian_keyValue, median_buyAndFail_keyValue_cost08Percent),
                 (mod_shared.glo_colName_buyAndFailAverage_keyValue, average_buyAndFail_keyValue_cost08Percent),
                 (mod_shared.glo_colName_percentChange_highestThroughCurrent, price_highest_through_current),
-                (mod_shared.glo_colName_url_sb, url)]
+                (mod_shared.glo_colName_url_sb, url),
+                (mod_shared.glo_colName_historySignalPrice, list_of_dicts_priceHistory)]
 
                 row.update(OrderedDict(list_of_tuples))
         return temp_stockInfo_list
@@ -338,12 +364,15 @@ def getStocksFromSb(temp_stockInfo_list):
 def getStocksFromNn(temp_stockInfo_list):
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        counter = 2 
+        counter = 2
+        if glo_test_bool:
+            print(inspect.stack()[0][3], 'in TEST MODE!')
         with requests.Session() as s:
             for row in temp_stockInfo_list:
                 sbNameshort = row.get(mod_shared.glo_colName_sbNameshort)
-                if counter > glo_iterations_limit:
-                    break
+                if glo_test_bool:
+                    if counter > glo_test_iteration_limit:
+                        break
                 print(counter,':',sbNameshort)
                 counter += 1
 
@@ -399,12 +428,71 @@ def getStocksFromNn(temp_stockInfo_list):
                 except Exception as e:
                     print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
                     print('error was in nested TRY (around urlNnStock_rel_list)')
-                    continue                
+                    continue
+
+                # get intraday-closing price percent changes
+                market_id = row.get(mod_shared.glo_colName_market_id)
+                identifier_id = row.get(mod_shared.glo_colName_identifier_id)
+                dateTodayStr = mod_shared.getDateTodayStr()
+                url = 'https://www.nordnet.se/graph/instrument/'+ market_id +'/'+identifier_id+'?from=1970-01-01&to='+dateTodayStr+'&fields=last,open,high,low,volume'
+                r = s.get(url)
+                if r.status_code != 200:
+                    print('something when wrong in URL request:', r.status_code)
+                    print('URL:', url)
+                
+                soup = BeautifulSoup(r.content, 'html.parser') # active are placed in "share"
+                list_of_dicts_nn = json.loads(str(soup))
+                list_of_dicts_sb = row.get(mod_shared.glo_colName_historySignalPrice)
+
+                buy_percent_changes = []
+                sellAndShort_percent_changes = []
+
+                # for each signal in history from SB 
+                for dict_sb in list_of_dicts_sb:
+                    # '%d.%m.%Y' -> '%Y-%m-%d'
+                    date_sb = datetime.datetime.strptime(dict_sb.get(glo_sb_history_date), '%d.%m.%Y').strftime('%Y-%m-%d')
+                    price_sb = float(dict_sb.get(glo_sb_history_price))
+                    signal_sb = dict_sb.get(glo_sb_history_signal)
+                    for dict_date_nn in list_of_dicts_nn:
+                        # microsec -> sec + 1 (to ensure ends at correct side of date)
+                        epoch_sec = int(dict_date_nn.get(glo_nn_history_time)/1000)+1
+                        # epoch_sec -> 'YYYY-MM-DD'
+                        date_nn = time.strftime('%Y-%m-%d', time.localtime(epoch_sec))
+                        price_nn = dict_date_nn.get(glo_nn_history_closing)
+
+                        # if dates of sb and nn match
+                        if date_sb == date_nn:
+                            # positive result: end_value (closing price) is higher than start_value (intraday price)
+                            if dict_sb.get(glo_sb_history_signal) == 'BUY':
+                                percentChange = mod_shared.getPercentChange(price_sb, price_nn) # start value; end value
+                                buy_percent_changes.append(percentChange)
+                            elif dict_sb.get(glo_sb_history_signal) == 'SELL' or dict_sb.get(glo_sb_history_signal) == 'SHORT':
+                                percentChange = mod_shared.getPercentChange(price_sb, price_nn) # start value; end value
+                                sellAndShort_percent_changes.append(percentChange)
+
+                # delete data of historic prices after usage
+                row.pop(mod_shared.glo_colName_historySignalPrice, None)
+
+                median_sellAndShort_change = round(median(sellAndShort_percent_changes),2)
+                average_sellAndShort_change = round(sum(sellAndShort_percent_changes)/float(len(sellAndShort_percent_changes)), 2)
+                median_buy_change = round(median(buy_percent_changes), 2)
+                average_buy_change = round(sum(buy_percent_changes)/float(len(buy_percent_changes)), 2)
+                
+                sum_medianSellAndShortChange_and_buyAndFailMedianKeyValue = row.get(mod_shared.glo_colName_buyAndFailMedian_keyValue) - abs(median_sellAndShort_change)
+                
+                list_of_tuples = [(mod_shared.glo_colName_median_sell_intradayClosingChange_percent, median_sellAndShort_change),
+                    (mod_shared.glo_colName_average_sell_intradayClosingChange_percent, average_sellAndShort_change),
+                    (mod_shared.glo_colName_median_buy_intradayClosingChange_percent, median_buy_change),
+                    (mod_shared.glo_colName_average_buy_intradayClosingChange_percent, average_buy_change),
+                    (mod_shared.glo_colName_buyAndFailMedian_keyValue_minus_median_sell_intradayClosingChange_percent, sum_medianSellAndShortChange_and_buyAndFailMedianKeyValue)]
+
+                row.update(OrderedDict(list_of_tuples))
+               
         return temp_stockInfo_list
     except Exception as e:
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
 
-# def stringToFLoat(temp_glo_filteredStockInfo_list, columnsToFloat_list):
+#test_ def strigToFLoat(temp_glo_filteredStockInfo_list, columnsToFloat_list):
 #     try:
 #         for row in temp_glo_filteredStockInfo_list:
 #             for column in columnsToFloat_list:
@@ -548,9 +636,6 @@ def addKeyToOrderedDict(list_to_update, list_of_keys):
 def setAllStockLists():
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        # test_bool = False
-        # glo_test_bool = True
-        # glo_test_str = 'test-'
         if glo_test_bool:
             print(inspect.stack()[0][3], 'in TEST MODE!')
             temp_stockInfo_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, 'stock-info-raw-4.csv')
@@ -572,7 +657,6 @@ def setAllStockLists():
 
         # updating items from complimentary list to temp_stockInfo_list
         list_of_key_selectors = [mod_shared.glo_colName_sbNameshort]
-        # list_of_key_overwriters = list(temp_complimentary_list[0].keys())
         list_of_key_overwriters = list(mod_shared.glo_complimentary_colNames.keys())
         temp_stockInfo_list = mod_shared.updateListFromListByKeys(temp_stockInfo_list,
             temp_complimentary_list,

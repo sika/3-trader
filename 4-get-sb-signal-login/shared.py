@@ -69,6 +69,12 @@ glo_colName_buyAndFailAverage_keyValue = 'BUYANDFAIL_AVERAGE_KEYVALUE'
 glo_colName_percentChange_highestThroughCurrent = 'PER_CHANGE_HIGHEST_THROUGH_CURRENT'
 glo_colName_stockToBuy_group = 'GROUP_BUY'
 glo_colName_compList = 'COMPLIMENTARY_LIST'
+glo_colName_historySignalPrice = 'HISTORY_SIGNAL_PRICE'
+glo_colName_median_sell_intradayClosingChange_percent = 'MEDIAN_SELL_INTRADAY-CLOSING-CHANGE_PERCENT'
+glo_colName_average_sell_intradayClosingChange_percent = 'AVERAGE_SELL_INTRADAY-CLOSING-CHANGE_PERCENT'
+glo_colName_median_buy_intradayClosingChange_percent = 'MEDIAN_BUY_INTRADAY-CLOSING-CHANGE_PERCENT'
+glo_colName_average_buy_intradayClosingChange_percent = 'AVERAGE_BUY_INTRADAY-CLOSING-CHANGE_PERCENT'
+glo_colName_buyAndFailMedian_keyValue_minus_median_sell_intradayClosingChange_percent = 'SUM_BUYANDFAIL_MEDIAN_KEYVALUE_AND_MEDIAN_SELL_INTRADAY-CLOSING-CHANGE_PERCENT'
 
 # mainly trader
 glo_stockStatus_list = []
@@ -408,6 +414,14 @@ def setGlobalColNames():
     except Exception as e:
         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
         writeErrorLog(inspect.stack()[0][3], str(e))
+
+def getPercentChange(start_value, end_value):
+    try:
+        # positive result: end_value is higher than start_value
+        return ((end_value - start_value) / start_value)*100
+    except Exception as e:
+        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        writeErrorLog(inspect.stack()[0][3], str(e))    
 
 def main():
     try:
