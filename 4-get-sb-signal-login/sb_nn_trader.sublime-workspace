@@ -1,0 +1,606 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"setStockL",
+				"setStockListGlobally"
+			],
+			[
+				"glo_stockSt",
+				"glo_stockStatus_list_name"
+			],
+			[
+				"path_",
+				"path_input_main"
+			],
+			[
+				"glo_stockS",
+				"glo_stockStatus_list_name"
+			],
+			[
+				"mod",
+				"mod_shared"
+			],
+			[
+				"list_of",
+				"list_of_key_selectors"
+			],
+			[
+				"not",
+				"not_in_list"
+			],
+			[
+				"remove",
+				"remove_list"
+			],
+			[
+				"remve",
+				"remove_list"
+			],
+			[
+				"temp_",
+				"temp_list"
+			],
+			[
+				"stocksTo",
+				"stocksToBuy_list"
+			],
+			[
+				"glo_colName",
+				"glo_colName_sbNameshort"
+			],
+			[
+				"glo_colName_",
+				"glo_colName_nameNordnet"
+			],
+			[
+				"dict_",
+				"dict_active"
+			],
+			[
+				"temp_nNa",
+				"temp_nNActive_list"
+			],
+			[
+				"temp_nNH",
+				"temp_nNHeld_list"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "create_stock_lists.py",
+			"settings":
+			{
+				"buffer_size": 43353,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "main_process_monitor.py",
+			"settings":
+			{
+				"buffer_size": 2153,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "main.py",
+			"settings":
+			{
+				"buffer_size": 71843,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "send_email_files.py",
+			"settings":
+			{
+				"buffer_size": 2371,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "test.py",
+			"settings":
+			{
+				"buffer_size": 3679,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "shared.py",
+			"settings":
+			{
+				"buffer_size": 19037,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/E/Dokument/Dropbox/Development/nordnet-api-00/python/3-trader/4-get-sb-signal-login"
+	],
+	"file_history":
+	[
+		"/E/Dokument/Dropbox/Development/nordnet-api-00/python/3-trader/4-get-sb-signal-login/create_stock_lists.py",
+		"/E/Dokument/Dropbox/Development/nordnet-api-00/python/3-trader/4-get-sb-signal-login/sb_nn_trader.sublime-project",
+		"/E/Dokument/Dropbox/Development/scraping_ufc/scrape_ufc_piratebay.py",
+		"/E/Dokument/Dropbox/Development/scraping_ufc/credentials.yml",
+		"/E/Dokument/Dropbox/Development/scraping_ufc/scrape_ufc_1337.py"
+	],
+	"find":
+	{
+		"height": 85.0
+	},
+	"find_in_files":
+	{
+		"height": 243.0,
+		"where_history":
+		[
+			""
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"stockInfo_request_success",
+			"list_of_stocks_failed",
+			"stockInfo_request_success",
+			"list_of_stocks_failed",
+			"nnName",
+			"getNnStockPageData",
+			"row",
+			"s.get(",
+			"url",
+			"glo_colName_url_sb",
+			"# if glo_test_bool:\n                #     if counter > glo_test_iteration_limit:\n                #         break",
+			"average_buyAndFail_keyValue_cost_0_25_Percent",
+			"average_buyAndFail_keyValue_cost08Percent",
+			"median_buyAndFail_keyValue_cost_0_25_Percent",
+			"median_buyAndFail_keyValue_cost08Percent",
+			"glo_costOfCourtage",
+			"glo_costOfBuy",
+			"GetStockStatus",
+			"getStockStatus",
+			"setAndGetStockStatusFromNn",
+			"https://proxyfl.info/s/?q=ufc+fight+night+128&category=0&page=0&orderby=99",
+			"file', glo_file_this, 'and",
+			"glo_credGmailAutotrading",
+			"        writeErrorLog(inspect.stack()[0][3], str(e))\n",
+			"path_input + ",
+			"local_glo_stockInfoUpdated_list",
+			"temp_complimentary_list",
+			"temp_blacklist",
+			"temp_stockInfo_list",
+			"temp_complimentary_list",
+			"temp_blacklist",
+			"temp_stockInfo_list",
+			"getNnStockPageData",
+			"abs(",
+			"glo_test_iteration_limit",
+			"buy_median_success_per_change",
+			"buy_median_failed_per_change",
+			"buy_total_success_per_change",
+			"buy_total_failed_per_change",
+			"median_buy_success_per_change",
+			"average_buy_success_per_change",
+			"median_buy_failed_per_change",
+			"average_buy_failed_per_change",
+			"median",
+			"Median",
+			"setStockListGlobally",
+			"pathOutput",
+			"getGlobalList",
+			"glo_stockToBuy_list_name",
+			"setStockStatus",
+			"temp_glo_stockStatus_list",
+			"getStocksNumberHeld",
+			"getNnStockVolume",
+			"glo_stockStatus_list",
+			"temp_glo_stockStatus_list",
+			"glo_stockStatus_list",
+			"temp_glo_stockStatus_list",
+			"isStockPriceChanged",
+			"glo_status_value_activeTempDefault",
+			"glo_sbSignalBuy",
+			"temp_glo_stockStatus_list",
+			"glo_stockStatus_list",
+			"temp_glo_stockStatus_list",
+			"setStockActiveTemp",
+			"setStockActive",
+			"setStocksNumberHeld",
+			"isStockHeld",
+			"setStockHeld",
+			"glo_stockStatus_list",
+			"setStockList",
+			"getCurrentNumberOfStocksActiveBuy",
+			"getStocksNumberHeld",
+			"temp_glo_stockStatus_list",
+			"getStocksNumberHeld",
+			"getNnStockVolume",
+			"getPayloadOrderValues",
+			"glo_stockStatus_list",
+			"glo_stockToBuy_list",
+			"createPidFile",
+			"GetStockStatus",
+			"getStockStatus",
+			"setAndGetStockStatusFromNn",
+			"epochSec",
+			"ageCondition",
+			"ageSecDelta",
+			"epochSecDelta",
+			"timeCondition",
+			"timeElapsed",
+			"\"",
+			"text",
+			"getStockStatus",
+			"GetStockStatus",
+			"getStockStatus",
+			"setAndGetStockStatusFromNn",
+			"setStockStatusFromNn",
+			"glo_stockStatus_list",
+			"glo_stockInfo_list",
+			"setStockStatusFromNn",
+			"sendEmail",
+			"sendEm",
+			"getCredentials",
+			"fileToRunIfCrash",
+			"sPathPidFile",
+			"sPathInput",
+			"path_base",
+			"pathFile",
+			"path_base",
+			"pathFile",
+			"temp_nNActive_unique_list",
+			"dict_remove",
+			"dict_active",
+			"nNHeldAndActive_unique_list",
+			"removeListFromListByKey",
+			"mod_shared.glo_colName_nameNordnet",
+			"dict_active",
+			"dict_held",
+			"remove_list",
+			"dict_active",
+			"dict_held",
+			"a",
+			"temp_list",
+			"my_dict",
+			"temp_stockInfo_list",
+			"getStockStatus",
+			"fileName",
+			"resetStockStatus",
+			"**",
+			"getStockStatus"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			""
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "create_stock_lists.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 43353,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								844,
+								844
+							]
+						],
+						"settings":
+						{
+							"history_list_is_closing": true,
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 268.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "main_process_monitor.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2153,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 185.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "main.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 71843,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								19980,
+								19980
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 9761.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "send_email_files.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2371,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "test.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3679,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1740.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "shared.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 19037,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 3038.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 41.0
+	},
+	"input":
+	{
+		"height": 83.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "sb_nn_trader.sublime-project",
+	"replace":
+	{
+		"height": 76.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 750.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"",
+				"E:\\Dokument\\Dropbox\\Development\\scraping_ufc\\scraping_ufc.sublime-project"
+			]
+		],
+		"width": 570.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": false,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": false,
+	"side_bar_width": 397.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

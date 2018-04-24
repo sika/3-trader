@@ -5,6 +5,7 @@ import inspect
 from robobrowser import RoboBrowser
 import re
 import os
+import sys
 
 glo_file_this = os.path.basename(__file__)
 

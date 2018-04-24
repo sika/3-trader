@@ -4,6 +4,7 @@ import os
 import inspect
 import time
 import smtplib
+import sys
 
 glo_file_this = os.path.basename(__file__)
 
@@ -21,7 +22,7 @@ def getPidFileNumber():
             pidNumberStr = file.read()
             pidNumberInt = int(pidNumberStr)
     except Exception as e:
-            print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+            print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
 
 def monitorPidNumber():
     print ('\nSTART', inspect.stack()[0][3])
@@ -49,7 +50,7 @@ def monitorPidNumber():
                     mod_shared.sendEmail('script might have CRASHED - NO MORE restarts will be tried', '')
                     break
     except Exception as e:
-            print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+            print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
 
 
 getPidFileNumber()

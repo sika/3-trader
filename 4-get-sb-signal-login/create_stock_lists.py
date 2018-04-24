@@ -11,13 +11,16 @@ from  more_itertools import unique_everseen
 import time
 import json
 import datetime
+import ast
+import sys
 from collections import OrderedDict
 from pprint import pprint
 from pprint import pformat
 
 glo_file_this = os.path.basename(__file__)
 
-glo_costOfBuy = 0.8
+# nordnet courtage (mini). https://www.nordnet.se/tjanster/prislista/oversikt.html#/
+glo_costOfCourtage = 0.25
 
 glo_nn_history_time = 'time'
 glo_nn_history_closing = 'last'
@@ -28,17 +31,19 @@ glo_sb_history_signal = 'signal'
 
 glo_colValue_notAvailable = 'N/A'
 
-glo_test_iteration_limit = 10
-glo_test_bool = True
-# glo_test_bool = False
+glo_test_bool = False
 glo_test_str = 'test-'
+glo_stockInfo_test_file = 'stock-info-raw-4.csv'
+
+glo_runGetStocksFromSb_bool = False
+glo_runSetAllStockLists_bool = True
 
 def setFilteredStockList(rowDict):
     try:
         global glo_filteredStockInfo_list
         glo_filteredStockInfo_list.append(rowDict)
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))  
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')  
 
 def filterFilteredStockInfo(column_key, criteria, temp_glo_filteredStockInfo_list):
     try:
@@ -65,37 +70,63 @@ def filterFilteredStockInfo(column_key, criteria, temp_glo_filteredStockInfo_lis
         temp_glo_filteredStockInfo_list = temp_list
         return temp_glo_filteredStockInfo_list
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))     
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')     
 
-def getNnStockPageData(url_stock, s):
+def getNnStockPageData(url_stock):
     try:
         result = re.search('identifier=(.*)&', url_stock)
         identifier_id = result.group(1)
         result = re.search('marketid=(.*)', url_stock)
         market_id = result.group(1)
+        try:
+            r = mod_shared.requests_retry_session().get(url_stock)
+        except Exception as e:
+            print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tURL:', url_stock, '\n\tError:', str(e), '\n')
+            return False
+        else:
+            soup = BeautifulSoup(r.content, 'html.parser')
 
-        # get name
-        r = s.get(url_stock)
-        if r.status_code != 200:
-            print('something when wrong in URL request:', r.status_code)
-            print('URL:', url_stock)
-        soup = BeautifulSoup(r.content, 'html.parser')
+            stock_heading_sentence = soup.find('h1', class_="title").get_text(strip=True)
+            # get nordnet name
+            nnName = re.search(r'Kursdata för (.*?) \(', stock_heading_sentence).group(1)
+            
+            # get nordnet shortname
+            # if more than one match (e.g.: (publ) (aroc) ), get the last one
+            nnNameshort_list = re.findall(r'\((.*?)\)', stock_heading_sentence)
+            nnNameshort = nnNameshort_list[-1]
 
-        stock_heading_sentence = soup.find('h1', class_="title").get_text(strip=True)
-        # get nordnet name
-        nnName = re.search(r'Kursdata för (.*?) \(', stock_heading_sentence).group(1)
-        # get nordnet shortname
-        nnNameshort = re.search(r'\((.*?)\)',stock_heading_sentence).group(1)
-
-        list_of_tuples = [(mod_shared.glo_colName_nameNordnet, nnName),
-        (mod_shared.glo_colName_nameShortNordnet, nnNameshort),
-        (mod_shared.glo_colName_market_id, market_id),
-        (mod_shared.glo_colName_identifier_id, identifier_id),
-        (mod_shared.glo_colName_url_nn, url_stock)]
-
-        return list_of_tuples
+            list_of_tuples = [(mod_shared.glo_colName_nameNordnet, nnName),
+            (mod_shared.glo_colName_nameShortNordnet, nnNameshort),
+            (mod_shared.glo_colName_market_id, market_id),
+            (mod_shared.glo_colName_identifier_id, identifier_id),
+            (mod_shared.glo_colName_url_nn, url_stock)]
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))     
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
+    else:
+        return list_of_tuples
+        
+def getMultiplicationValue(soup_str, soup):
+    try:
+        value_6 = soup.find(id=re.compile(soup_str)).parent.parent.next_sibling.get_text()
+        return int(float(value_6.replace(",", "")))             
+    except Exception as e:
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
+
+def getPercentCorrect(soup_str, soup):
+    try:
+        all_imgTags_6_month = soup.find_all(id=re.compile(soup_str))
+        total_checks = len(all_imgTags_6_month)
+        counter_uncheck = 0
+        if all_imgTags_6_month and total_checks != 0:
+            for imgtag in all_imgTags_6_month:
+                srcName = imgtag['src'].lower() #'img/Uncheck.gif' in lower case 
+                if srcName.find('uncheck') != -1: # "uncheck" spelling more reliable than "check"
+                    counter_uncheck += 1
+            counter_check = total_checks-counter_uncheck
+            
+            return round(100*(float(counter_check)/float(total_checks)), 1)                     
+    except Exception as e:
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
 
 def writeStockList(temp_list, name_path_file):
     try:
@@ -121,386 +152,413 @@ def writeStockList(temp_list, name_path_file):
             for row in temp_list:
                 writer.writerow(row)
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
 
-def getStocksFromSb(temp_stockInfo_list):
+def getStocksFromSb(stockInfo_list):
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        counter = 2
         if glo_test_bool:
             print(inspect.stack()[0][3], 'in TEST MODE!')
-        with requests.Session() as s:
-            for row in temp_stockInfo_list:
-                if glo_test_bool:
-                    if counter > glo_test_iteration_limit:
-                        break
-                sbNameshort = row.get(mod_shared.glo_colName_sbNameshort)
+
+        counter = 2
+        stockInfo_request_success = []
+        requests_should_retry = True
+        attempts_counter = 0
+        max_attempts = 2
+        while attempts_counter != max_attempts and requests_should_retry:
+            attempts_counter += 1
+            list_of_stocks_failed = []
+            for stock in stockInfo_list:
+                sbNameshort = stock.get(mod_shared.glo_colName_sbNameshort)
                 print (counter, ':' ,sbNameshort)
                 counter += 1
+
+                # get sb shortname (e.g., ANOT.ST)
                 url_postfix = sbNameshort
-                url = mod_shared.glo_sbBaseStockPageUrl + url_postfix
-                r = s.get(url)
-                if r.status_code != 200:
-                    print('something when wrong in URL request:', r.status_code)
-                    print('URL:', url)
-                url_response = r.url
-                if url_response.find('SignalPage') == -1:
-                    print('NOT FOUND, skipping:', r.url)
-                    continue
-
-                soup = BeautifulSoup(r.content, 'html.parser')
-
-                # break if stock's last signal is QUIT
-                rows_months_24 = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory24_DXDataRow"))
-                array_length_24 = len(rows_months_24)
-                if array_length_24 == 0: # page returned contained no stock list
-                    print('page returned contained no stock list - skipping')
-                    continue
-                
-                signal_quit = rows_months_24[0].find_all('td')[2].get_text() # stock is QUIT
-                if signal_quit == 'QUIT':
-                    print('Stock list last signal was', signal_quit ,'- skipping')
-                    continue
-
-                percent_6 = percent_12 = percent_24 = percent_average = price_last_close = 'N/A'
+                # add sb shortname (e.g., ANOT.ST) to sb base url (e.g., https://www.swedishbulls.com/SignalPage.aspx?lang=en&Ticker=) ->  https://www.swedishbulls.com/SignalPage.aspx?lang=en&Ticker=ANOT.ST
+                url_sb = mod_shared.glo_sbBaseStockPageUrl + url_postfix
 
                 try:
-                    price_last_close = float(soup.find(id='MainContent_lastpriceboxsub').get_text(strip=True).replace(',', ''))
+                    r = mod_shared.requests_retry_session().get(url_sb)
                 except Exception as e:
-                    print('price_last_close FAILED')
-                    print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
-                    pass
-
-                # get dates with signal with price
-                list_of_dicts_priceHistory = []
-                rows_months_24 = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory24_DXDataRow"))
-                for stock_date in rows_months_24:
-                    # date
-                    date_history = stock_date.contents[1].get_text()
-                    # price
-                    price_history = stock_date.contents[2].get_text()
-                    # signal
-                    signal_history = stock_date.contents[3].get_text()
-
-                    list_of_dicts_priceHistory.append({'date': date_history, 'price': price_history, 'signal': signal_history})
-
-                # get value and total percent correct for last 6 months
-                all_imgTags_6_month = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory6_cell"))
-                if not all_imgTags_6_month: #list is empty
-                    print('returned empty list with SOUP')
+                    print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tURL:', url_sb, '\n\tError:', str(e), '\n')
+                    list_of_stocks_failed.append(stock)
                     continue
-                value_6 = soup.find(id=re.compile("MainContent_signalpagehistory_PatternHistory6_cell")).parent.parent.next_sibling.get_text()                
-                value_6 = int(float(value_6.replace(",", "")))
-                total_checks = len(all_imgTags_6_month)
-                counter_uncheck = 0
-                if all_imgTags_6_month is not None and total_checks != 0:
-                    for imgtag in all_imgTags_6_month:
-                        srcName = imgtag['src'].lower() #'img/Uncheck.gif' in lower case 
-                        if srcName.find('uncheck') != -1: # "uncheck" spelling more reliable than "check"
-                            counter_uncheck += 1
-                    counter_check = total_checks-counter_uncheck
-                    percent_6 = round(100*(float(counter_check)/float(total_checks)), 1)
-
-                # get value and total percent correct for last 12 months
-                all_imgTags_12_month = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory12_cell"))
-                value_12 = soup.find(id=re.compile("MainContent_signalpagehistory_PatternHistory12_cell")).parent.parent.next_sibling.get_text()
-                value_12 = int(float(value_12.replace(",", "")))
-                total_checks = len(all_imgTags_12_month)
-                counter_uncheck = 0
-                if all_imgTags_12_month is not None and total_checks != 0:
-                    for imgtag in all_imgTags_12_month:
-                        srcName = imgtag['src'].lower() #'img/Uncheck.gif' in lower case 
-                        if srcName.find('uncheck') != -1: # "uncheck" spelling more reliable than "check"
-                            counter_uncheck += 1
-                    counter_check = total_checks-counter_uncheck
-                    percent_12 = round(100*(float(counter_check)/float(total_checks)), 1)
-
-                # get value and total percent correct for last 24 months
-                all_imgTags_24_month = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory24_cell"))
-                value_24 = soup.find(id=re.compile("MainContent_signalpagehistory_PatternHistory24_cell")).parent.parent.next_sibling.get_text()
-                value_24 = int(float(value_24.replace(",", "")))
-                total_checks = len(all_imgTags_24_month)
-                counter_uncheck = 0
-                if all_imgTags_24_month is not None and total_checks != 0:
-                    for imgtag in all_imgTags_24_month:
-                        srcName = imgtag['src'].lower() #'img/Uncheck.gif' in lower case 
-                        if srcName.find('uncheck') != -1: # "uncheck" spelling more reliable than "check"
-                            counter_uncheck += 1
-                    counter_check = total_checks-counter_uncheck
-                    percent_24 = round(100*(float(counter_check)/float(total_checks)), 1)
-
-                # buy percentage correct
-                counter_buys = 0
-                counter_buys_uncheck = 0
-                for i in range(0,array_length_24-1):
-                    srcName = rows_months_24[i].find_all('td')[3].img['src'].lower()
-                    if srcName.find('boschecked') != -1: # signal result not yet confirmed
+                else:
+                    url_response = r.url
+                    if url_response.find('SignalPage') == -1:
+                        print('NOT FOUND, skipping:', r.url)
                         continue
-                    signal = rows_months_24[i].find_all('td')[2].get_text()
-                    # total buys
-                    if signal == 'BUY':
-                        counter_buys +=1
-                    if signal == 'BUY' and srcName.find('uncheck') != -1: # "uncheck" spelling more reliable than "check"
-                        counter_buys_uncheck += 1
 
-                counter_buys_check = counter_buys - counter_buys_uncheck
-                buys_correct_percent_24 = round(100*(float(counter_buys_check)/float(counter_buys)), 1)
-                # average percent
-                percent_list = [percent_6, percent_12, percent_24]
-                counter_percent_items = 0
-                percent_sum = 0
-                for percent in percent_list:
-                    if percent != 'N/A':
-                        percent_sum += percent
-                        counter_percent_items += 1
-                if counter_percent_items != 0:
-                    percent_average = round(percent_sum/counter_percent_items, 1)
+                    # shared soup for whole SB stock page
+                    soup = BeautifulSoup(r.content, 'html.parser')
 
-                # average value
-                value_list = [value_6, value_12, value_24]
-                value_sum = 0
-                for value in value_list:
-                    value_sum += value
-                value_average = int(value_sum/len(value_list))
+                    # Continue on next stock if stock page returned no list
+                    rows_months_24 = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory24_DXDataRow"))
+                    if not rows_months_24: # page returned contained no stock list
+                        print('page returned contained no stock list - skipping')
+                        continue
+                    
+                    # Continue on next stock if stock's last signal is QUIT
+                    signal_quit = rows_months_24[0].find_all('td')[2].get_text() # stock is QUIT
+                    if signal_quit == 'QUIT':
+                        print('Stock list last signal was', signal_quit ,'- skipping')
+                        continue
 
-                # average buy percentage change and median value for success and failed results
-                buy_total_failed_per_change = 0
-                buy_total_success_per_change = 0
-                buys_failed = 0
-                buys_success = 0
-                buy_median_failed_per_change = []
-                buy_median_success_per_change = []
-                for i in range(0, array_length_24-1):
-                    signalConfirmationFormer = rows_months_24[i+1].find_all('td')[3].img['src'].lower()
-                    if signalConfirmationFormer.find('boschecked') != -1: # signal result not yet confirmed
-                        continue        
-                    signalCurrent = rows_months_24[i].find_all('td')[2].get_text()
-                    priceCurrent = float(rows_months_24[i].find_all('td')[1].get_text().replace(',', ''))
-                    signalFormer = rows_months_24[i+1].find_all('td')[2].get_text()
-                    priceFormer = float(rows_months_24[i+1].find_all('td')[1].get_text().replace(',', ''))
+                    percent_correct_6 = percent_correct_12 = percent_correct_24 = percent_average = value_average = price_last_close = ''
 
-                    if signalCurrent == 'SHORT' or signalCurrent == 'SELL' and signalFormer == 'BUY':
-                        if signalConfirmationFormer.find('uncheck') != -1: # failed buy
-                            buy_median_failed_per_change.append(((priceCurrent/priceFormer)-1)*100)
-                            buy_total_failed_per_change += ((priceCurrent/priceFormer)-1)*100
-                            buys_failed += 1
-                        else:
-                            buy_median_success_per_change.append(((priceCurrent/priceFormer)-1)*100)
-                            buy_total_success_per_change += ((priceCurrent/priceFormer)-1)*100
-                            buys_success += 1
+                    try:
+                        price_last_close = float(soup.find(id='MainContent_lastpriceboxsub').get_text(strip=True).replace(',', ''))
+                    except Exception as e:
+                        print('price_last_close FAILED')
+                        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
+                        pass
 
-                average_buy_failed_per_change = round(buy_total_failed_per_change/buys_failed, 2)
-                median_buy_failed_per_change = round(median(buy_median_failed_per_change), 2)
-                average_buy_success_per_change = round(buy_total_success_per_change/buys_success, 2)
-                median_buy_success_per_change = round(median(buy_median_success_per_change), 2)
+                    soup_str_6 = 'MainContent_signalpagehistory_PatternHistory6_cell'
+                    value_6 = getMultiplicationValue(soup_str_6, soup)
+                    percent_correct_6 = getPercentCorrect(soup_str_6, soup)
 
-                buys_correct_decimal_24 = buys_correct_percent_24/100
-                median_buyAndFail_keyValue_cost08Percent = round(((median_buy_success_per_change - glo_costOfBuy)*buys_correct_decimal_24) - ((abs(median_buy_failed_per_change) + glo_costOfBuy)*(1-buys_correct_decimal_24)), 2)
-                average_buyAndFail_keyValue_cost08Percent = round(((average_buy_success_per_change - glo_costOfBuy)*buys_correct_decimal_24) - ((abs(average_buy_failed_per_change) + glo_costOfBuy)*(1-buys_correct_decimal_24)), 2)
+                    soup_str_12 = 'MainContent_signalpagehistory_PatternHistory12_cell'
+                    value_12 = getMultiplicationValue(soup_str_12, soup)
+                    percent_correct_12 = getPercentCorrect(soup_str_12, soup)
 
-                buys_total = buys_success + buys_failed
-                # current price compared to highest price percentage change
-                price_high = 0
-                price_current = 0
-                for i in range(0, array_length_24-1):
-                    if i == 0:
-                        price_current = float(rows_months_24[i].find_all('td')[1].get_text().replace(',', ''))
-                    temp_price = float(rows_months_24[i].find_all('td')[1].get_text().replace(',', ''))
-                    if temp_price > price_high:
-                        price_high = temp_price
+                    soup_str_24 = 'MainContent_signalpagehistory_PatternHistory24_cell'
+                    value_24 = getMultiplicationValue(soup_str_24, soup)
+                    percent_correct_24 = getPercentCorrect(soup_str_24, soup)
 
-                price_highest_through_current = round((price_high/price_current), 2) # 4/2 = (2-1)*100
+                    # average percent
+                    percent_list = [percent_correct_6, percent_correct_12, percent_correct_24]
+                    percent_average = round(sum(percent_list)/len(percent_list),1)
 
-                # average percent change between signals (neutral +- sign)
-                percent_change_total = 0
-                for i in range(0, array_length_24-1):
-                    price_new = float(rows_months_24[i].find_all('td')[1].get_text().replace(',', ''))
-                    price_old = float(rows_months_24[i+1].find_all('td')[1].get_text().replace(',', ''))
-                    price_change = abs(((price_new-price_old)/price_old)*100)
-                    percent_change_total += price_change
+                    # average value
+                    value_list = [value_6, value_12, value_24]
+                    value_average = int(sum(value_list)/len(value_list))
 
-                percent_change_price_average = round(percent_change_total/(array_length_24-1), 2)
+                    # get dates with signal with price
+                    list_of_dicts_priceHistory = []
+                    rows_months_24 = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory24_DXDataRow"))
+                    for stock_date in rows_months_24:
+                        # date
+                        date_history = stock_date.contents[1].get_text()
+                        # price
+                        price_history = stock_date.contents[2].get_text()
+                        # signal
+                        signal_history = stock_date.contents[3].get_text()
 
-                # median percent change between signals (neutral +- sign)
-                percent_change_total = 0
-                percent_change_list = []
-                for i in range(0, array_length_24-1):
-                    price_new = float(rows_months_24[i].find_all('td')[1].get_text().replace(',', ''))
-                    price_old = float(rows_months_24[i+1].find_all('td')[1].get_text().replace(',', ''))
-                    price_change = abs(((price_new-price_old)/price_old)*100)
-                    percent_change_list.append(price_change)
+                        list_of_dicts_priceHistory.append({'date': date_history, 'price': price_history, 'signal': signal_history})
 
-                # percent_change_price_average = round(percent_change_total/(array_length-1), 2)
-                percent_change_price_median = round(median(percent_change_list), 2)
+                    # buy percentage correct
+                    rows_months_24 = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory24_DXDataRow"))
+                    array_length_24 = len(rows_months_24)
+                    counter_buys = 0
+                    counter_buys_uncheck = 0
+                    for i in range(0,array_length_24-1):
+                        srcName = rows_months_24[i].find_all('td')[3].img['src'].lower()
+                        if srcName.find('boschecked') != -1: # signal result not yet confirmed
+                            continue
+                        signal = rows_months_24[i].find_all('td')[2].get_text()
+                        # total buys
+                        if signal == 'BUY':
+                            counter_buys +=1
+                        if signal == 'BUY' and srcName.find('uncheck') != -1: # "uncheck" spelling more reliable than "check"
+                            counter_buys_uncheck += 1
 
-                list_of_tuples = [(mod_shared.glo_colName_price, price_last_close),
-                (mod_shared.glo_colName_6_percent, percent_6),
-                (mod_shared.glo_colName_6_value, value_6),
-                (mod_shared.glo_colName_12_percent, percent_12),
-                (mod_shared.glo_colName_12_value, value_12),
-                (mod_shared.glo_colName_24_percent, percent_24),
-                (mod_shared.glo_colName_24_value, value_24),
-                (mod_shared.glo_colName_percentAverage, percent_average),
-                (mod_shared.glo_colName_valueAverage, value_average),
-                (mod_shared.glo_colName_buysTotal, buys_total),
-                (mod_shared.glo_colName_24_buys_correct_percent, buys_correct_percent_24),
-                (mod_shared.glo_colName_pricePercentChange_average, percent_change_price_average),
-                (mod_shared.glo_colName_pricePercentChange_median, percent_change_price_median),
-                (mod_shared.glo_colName_buyAverageFailedPerChange, average_buy_failed_per_change),
-                (mod_shared.glo_colName_buyMedianFailedPerChange, median_buy_failed_per_change),
-                (mod_shared.glo_colName_buyAverageSuccessPerChange, average_buy_success_per_change),
-                (mod_shared.glo_colName_buyMedianSuccessPerChange, median_buy_success_per_change),
-                (mod_shared.glo_colName_buyAndFailMedian_keyValue, median_buyAndFail_keyValue_cost08Percent),
-                (mod_shared.glo_colName_buyAndFailAverage_keyValue, average_buyAndFail_keyValue_cost08Percent),
-                (mod_shared.glo_colName_percentChange_highestThroughCurrent, price_highest_through_current),
-                (mod_shared.glo_colName_url_sb, url),
-                (mod_shared.glo_colName_historySignalPrice, list_of_dicts_priceHistory)]
+                    counter_buys_check = counter_buys - counter_buys_uncheck
+                    buys_correct_percent_24 = round(100*(float(counter_buys_check)/float(counter_buys)), 1)
 
-                row.update(OrderedDict(list_of_tuples))
-        return temp_stockInfo_list
+                    # average buy percentage change and median value for success and failed results
+                    buy_failed_change = []
+                    buy_success_change = []
+                    # get all stock rows of 24 months
+                    rows_months_24 = soup.find_all(id=re.compile("MainContent_signalpagehistory_PatternHistory24_DXDataRow"))
+                    array_length_24 = len(rows_months_24)
+                    for i in range(0, array_length_24-1):
+                        signal_confirmation_current = rows_months_24[i].find_all('td')[3].img['src'].lower()
+                        if signal_confirmation_current.find('boschecked') != -1: # signal result not yet confirmed
+                            continue
+                        signal_confirmation_former = rows_months_24[i+1].find_all('td')[3].img['src'].lower() 
+                        current_signal = rows_months_24[i].find_all('td')[2].get_text()
+                        current_price = float(rows_months_24[i].find_all('td')[1].get_text().replace(',', ''))
+                        former_signal = rows_months_24[i+1].find_all('td')[2].get_text()
+                        former_price = float(rows_months_24[i+1].find_all('td')[1].get_text().replace(',', ''))
+                        if current_signal == 'SHORT' or current_signal == 'SELL' and former_signal == 'BUY':
+                            if signal_confirmation_former.find('uncheck') != -1: # failed buy
+                                buy_failed_change.append(mod_shared.getPercentChange(former_price, current_price))
+                            else:
+                                buy_success_change.append(mod_shared.getPercentChange(former_price, current_price))
+
+                    # the AVERAGE percentage change of failed buys (incorrect signals)
+                    average_buy_failed_change = round(sum(buy_failed_change)/len(buy_failed_change), 2)
+                    # the AVERAGE percentage change of successful buys (correct signals)
+                    average_buy_success_change = round(sum(buy_success_change)/len(buy_success_change), 2)
+                    # the MEDIAN percentage change of failed buys (incorrect signals)
+                    median_buy_failed_change = round(median(buy_failed_change), 2)
+                    # the MEDIAN percentage of successful buys (correct signals)
+                    median_buy_success_change = round(median(buy_success_change), 2)
+
+                    # median and average gain per buys (considering failed buys and cost of trade (e.g., courtage))
+                    buys_correct_decimal_24 = buys_correct_percent_24/100
+                    median_buyAndFail_keyValue = round(((median_buy_success_change - glo_costOfCourtage)*buys_correct_decimal_24) + ((median_buy_failed_change + glo_costOfCourtage)*(1-buys_correct_decimal_24)), 2)
+                    average_buyAndFail_keyValue = round(((average_buy_success_change - glo_costOfCourtage)*buys_correct_decimal_24) + ((average_buy_failed_change + glo_costOfCourtage)*(1-buys_correct_decimal_24)), 2)
+
+                    # total number of buys
+                    buys_total = len(buy_success_change) + len(buy_failed_change)
+                    
+                    # current price compared to highest price percentage change
+                    array_length_24 = len(rows_months_24)
+                    price_high = 0
+                    price_current = 0
+                    for i in range(0, array_length_24-1):
+                        if i == 0:
+                            price_current = float(rows_months_24[i].find_all('td')[1].get_text().replace(',', ''))
+                        temp_price = float(rows_months_24[i].find_all('td')[1].get_text().replace(',', ''))
+                        if temp_price > price_high:
+                            price_high = temp_price
+
+                    price_highest_through_current = round((price_high/price_current), 2) # 4/2 = (2-1)*100
+
+                    # MEDIAN and AVERAGE percent change between signals (neutral +- sign) (sign of volatility)
+                    percent_change_list = []
+                    percent_change_total = 0
+                    for i in range(0, array_length_24-1):
+                        price_end = float(rows_months_24[i].find_all('td')[1].get_text().replace(',', ''))
+                        price_start = float(rows_months_24[i+1].find_all('td')[1].get_text().replace(',', ''))
+                        price_change = abs(mod_shared.getPercentChange(price_start, price_end)) #start value, end value
+                        percent_change_total += price_change
+                        percent_change_list.append(price_change)
+
+                    percent_change_price_average = round(percent_change_total/(array_length_24-1), 2)
+                    percent_change_price_median = round(median(percent_change_list), 2)
+
+                    list_of_tuples = [(mod_shared.glo_colName_url_sb, url_sb),
+                        (mod_shared.glo_colName_price, price_last_close),
+                        (mod_shared.glo_colName_6_percent, percent_correct_6),
+                        (mod_shared.glo_colName_6_value, value_6),
+                        (mod_shared.glo_colName_12_percent, percent_correct_12),
+                        (mod_shared.glo_colName_12_value, value_12),
+                        (mod_shared.glo_colName_24_percent, percent_correct_24),
+                        (mod_shared.glo_colName_24_value, value_24),
+                        (mod_shared.glo_colName_percentAverage, percent_average),
+                        (mod_shared.glo_colName_valueAverage, value_average),
+                        (mod_shared.glo_colName_buysTotal, buys_total),
+                        (mod_shared.glo_colName_24_buys_correct_percent, buys_correct_percent_24),
+                        (mod_shared.glo_colName_pricePercentChange_average, percent_change_price_average),
+                        (mod_shared.glo_colName_pricePercentChange_median, percent_change_price_median),
+                        (mod_shared.glo_colName_buyAverageFailedPerChange, average_buy_failed_change),
+                        (mod_shared.glo_colName_buyMedianFailedPerChange, median_buy_failed_change),
+                        (mod_shared.glo_colName_buyAverageSuccessPerChange, average_buy_success_change),
+                        (mod_shared.glo_colName_buyMedianSuccessPerChange, median_buy_success_change),
+                        (mod_shared.glo_colName_buyAndFailMedian_keyValue, median_buyAndFail_keyValue),
+                        (mod_shared.glo_colName_buyAndFailAverage_keyValue, average_buyAndFail_keyValue),
+                        (mod_shared.glo_colName_percentChange_highestThroughCurrent, price_highest_through_current),
+                        (mod_shared.glo_colName_historySignalPrice, list_of_dicts_priceHistory)]
+
+                    stock.update(OrderedDict(list_of_tuples))
+                    stockInfo_request_success.append(stock)
+           
+            if list_of_stocks_failed and attempts_counter < max_attempts:
+                print('\nstock url requests failed:')
+                stock_counter=1
+                for stock_failed in list_of_stocks_failed:
+                    print(str(stock_counter)+': '+stock_failed.get(mod_shared.glo_colName_sbNameshort))
+                    stock_counter += 1
+                stockInfo_list = list(list_of_stocks_failed)
+                print('\nRetrying...')
+            else:
+                requests_should_retry = False
+
+        if list_of_stocks_failed:
+            print('\nStocks failed after '+ str(max_attempts) +' - discarding')
+            stock_counter=1
+            body = []
+            for stock_failed in list_of_stocks_failed:
+                body.append(stock_failed.get(mod_shared.glo_colName_sbNameshort))
+                print(str(stock_counter)+': '+stock_failed.get(mod_shared.glo_colName_sbNameshort))
+                stock_counter += 1
+            sbj = 'Failed stock requests inside '+inspect.stack()[0][3]
+            mod_shared.sendEmail(sbj, body)
+
+        return stockInfo_request_success
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
 
-def getStocksFromNn(temp_stockInfo_list):
+def getStocksFromNn(stockInfo_list):
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        counter = 2
         if glo_test_bool:
             print(inspect.stack()[0][3], 'in TEST MODE!')
-        with requests.Session() as s:
-            for row in temp_stockInfo_list:
-                sbNameshort = row.get(mod_shared.glo_colName_sbNameshort)
-                if glo_test_bool:
-                    if counter > glo_test_iteration_limit:
-                        break
+        
+        counter = 2
+        stockInfo_request_success = []
+        stocks_not_matched = []
+        requests_should_retry = True
+        attempts_counter = 0
+        max_attempts = 2
+        while attempts_counter <= max_attempts and requests_should_retry:
+            attempts_counter += 1
+            list_of_stockRequests_failed = []
+            for stock in stockInfo_list:
+                sbNameshort = stock.get(mod_shared.glo_colName_sbNameshort)
                 print(counter,':',sbNameshort)
                 counter += 1
 
-                if row.get(mod_shared.glo_colName_url_sb) is None:
-                    print(mod_shared.glo_colName_url_sb, 'was None - skipping')
+                if not stock.get(mod_shared.glo_colName_url_sb):
+                    print(mod_shared.glo_colName_url_sb, 'was None or empty - skipping')
                     continue
 
                 # checking complimentary list
-                if row.get(mod_shared.glo_colName_compList) is not None:
-                    url_stock = row[mod_shared.glo_colName_url_nn]
-                    list_of_tuples = getNnStockPageData(url_stock, s)
-                    row.update(OrderedDict(list_of_tuples))
-                    continue
-
-                sbNameshortList = re.findall(r"[\w']+", sbNameshort)
-                sbNameshortSplit = ''
-                array_length = len(sbNameshortList)
-                for i in range(0, array_length-1): # skip last word (e.g., 'ST', 'NGM')
-                    if i < array_length-1:
-                        sbNameshortSplit += ' ' + sbNameshortList[i]
-                # remove leading ' '
-                sbNameshortSplit = sbNameshortSplit[1:]
-                sbNameshortList = sbNameshortSplit.split()
-                # get query:
-                query = ''
-                for word in sbNameshortList:
-                    # will yield ex '+AGORA+PREF'
-                    query += '+' + word
-                # remove leading '+'
-                query = query[1:]
-                urlNn = 'https://www.nordnet.se'
-                urlNnSearch = 'https://www.nordnet.se/search/load.html'
-                payload = {
-                'query': query,
-                'type': 'instrument'
-                }
-                # Initial stock search
-                r = s.post('https://www.nordnet.se/search/load.html', data=payload)
-                if r.status_code != 200:
-                    print('something when wrong in URL request:', r.status_code)
-                    print('URL:', urlNnSearch)
-                soup = BeautifulSoup(r.content, 'html.parser')
-                try: #checking 3 top results in search result list
-                    urlNnStock_rel_list = soup.find(id=re.compile('search-results-container')).find_all('div', class_='instrument-name') # all divs (containing a tags) in search result
-                    if urlNnStock_rel_list: # if list not empty
-                        for i in range(0,2):
-                            url_stock = urlNn + urlNnStock_rel_list[i].a['href']
-                            list_of_tuples = getNnStockPageData(url_stock, s)
-                            dict_temp = dict(list_of_tuples)
-                            if dict_temp.get(mod_shared.glo_colName_nameShortNordnet) == sbNameshortSplit:
-                                row.update(OrderedDict(list_of_tuples))
-                                break
-                except Exception as e:
-                    print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
-                    print('error was in nested TRY (around urlNnStock_rel_list)')
-                    continue
+                if stock.get(mod_shared.glo_colName_compList):
+                    print('complimentary list:', stock.get(mod_shared.glo_colName_sbNameshort))
+                    url_stock = stock[mod_shared.glo_colName_url_nn]
+                    list_of_tuples = getNnStockPageData(url_stock)
+                    if list_of_tuples:
+                        stock.update(OrderedDict(list_of_tuples))
+                    else:
+                        list_of_stockRequests_failed.append(stock)
+                        continue
+                else:
+                    # split on NOT [a-zA-Z0-9_] (letters, digits, and underscores). Example: SAGA-B.ST -> ['SAGA', 'B', 'ST']
+                    sbNameshort_split_list = re.findall(r"[\w']+", sbNameshort)
+                    
+                    # remove last item. Example: ['SAGA', 'B', 'ST'] -> ['SAGA', 'B']
+                    sbNameshort_split_list = sbNameshort_split_list[:-1]
+                    
+                    # join list with space for alternative sb->nnNameShort match (SB might be SAGA-B while NN SAGA B)
+                    sb_nn_nameShort_match = " ".join(sbNameshort_split_list)
+                    
+                    # join list with a '+'-sign between words for query. exaple: ['SAGA', 'B'] -> SAGA+B
+                    query = "+".join(sbNameshort_split_list)
+                    
+                    urlNn = 'https://www.nordnet.se'
+                    urlNnSearch = 'https://www.nordnet.se/search/load.html'
+                    payload = {
+                    'query': query,
+                    'type': 'instrument'
+                    }
+                    try:
+                        # Initial stock search
+                        r = mod_shared.requests_retry_session().post(urlNnSearch, data=payload)
+                    except Exception as e:
+                        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tURL:', urlNnSearch, '\n\tError:', str(e), '\n')
+                        list_of_stockRequests_failed.append(stock)
+                        continue
+                    else:
+                        soup = BeautifulSoup(r.content, 'html.parser') # active are placed in "share"
+                        urlNnStock_rel_list = soup.find(id=re.compile('search-results-container')).find_all('div', class_='instrument-name') # all divs (containing a tags) in search result
+                        if urlNnStock_rel_list: # if list not empty
+                            for i in range(0,5):
+                                url_stock = urlNn + urlNnStock_rel_list[i].a['href']
+                                # list_of_tuples = getNnStockPageData(url_stock, s)
+                                list_of_tuples = getNnStockPageData(url_stock)
+                                if list_of_tuples:
+                                    dict_temp = dict(list_of_tuples)
+                                    if dict_temp.get(mod_shared.glo_colName_nameShortNordnet) == sb_nn_nameShort_match:
+                                        stock.update(OrderedDict(list_of_tuples))
+                                        break
+                                else:
+                                    list_of_stockRequests_failed.append(stock)
+                                    continue
 
                 # get intraday-closing price percent changes
-                market_id = row.get(mod_shared.glo_colName_market_id)
-                identifier_id = row.get(mod_shared.glo_colName_identifier_id)
-                dateTodayStr = mod_shared.getDateTodayStr()
-                url = 'https://www.nordnet.se/graph/instrument/'+ market_id +'/'+identifier_id+'?from=1970-01-01&to='+dateTodayStr+'&fields=last,open,high,low,volume'
-                r = s.get(url)
-                if r.status_code != 200:
-                    print('something when wrong in URL request:', r.status_code)
-                    print('URL:', url)
-                
-                soup = BeautifulSoup(r.content, 'html.parser') # active are placed in "share"
-                list_of_dicts_nn = json.loads(str(soup))
-                list_of_dicts_sb = row.get(mod_shared.glo_colName_historySignalPrice)
+                market_id = stock.get(mod_shared.glo_colName_market_id)
+                identifier_id = stock.get(mod_shared.glo_colName_identifier_id)
+                # if market_id and identifier_id was previously found 
+                if market_id and identifier_id:
+                    dateTodayStr = mod_shared.getDateTodayStr()
+                    url = 'https://www.nordnet.se/graph/instrument/'+ market_id +'/'+identifier_id+'?from=1970-01-01&to='+dateTodayStr+'&fields=last,open,high,low,volume'
+                    try:
+                        r = mod_shared.requests_retry_session().get(url)
+                    except Exception as e:
+                        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tURL:', url_stock, '\n\tError:', str(e), '\n')
+                        list_of_stockRequests_failed.append(stock)
+                        continue
+                    else:
+                        soup = BeautifulSoup(r.content, 'html.parser') # active are placed in "share"
+                        list_of_dicts_nn = json.loads(str(soup))
+                        list_of_dicts_sb = stock.get(mod_shared.glo_colName_historySignalPrice)
+                        
+                        buy_percent_changes = []
+                        sellAndShort_percent_changes = []
 
-                buy_percent_changes = []
-                sellAndShort_percent_changes = []
+                        # for each signal in history from SB 
+                        for dict_sb in list_of_dicts_sb:
+                            # '%d.%m.%Y' -> '%Y-%m-%d'
+                            date_sb = datetime.datetime.strptime(dict_sb.get(glo_sb_history_date), '%d.%m.%Y').strftime('%Y-%m-%d')
+                            price_sb_str = dict_sb.get(glo_sb_history_price).replace(",", "")
+                            price_sb = float(price_sb_str)
+                            signal_sb = dict_sb.get(glo_sb_history_signal)
+                            for dict_date_nn in list_of_dicts_nn:
+                                # microsec -> sec + 1 (to ensure ends at correct side of date)
+                                epoch_sec = int(dict_date_nn.get(glo_nn_history_time)/1000)+1
+                                # epoch_sec -> 'YYYY-MM-DD'
+                                date_nn = time.strftime('%Y-%m-%d', time.localtime(epoch_sec))
+                                price_nn = dict_date_nn.get(glo_nn_history_closing)
 
-                # for each signal in history from SB 
-                for dict_sb in list_of_dicts_sb:
-                    # '%d.%m.%Y' -> '%Y-%m-%d'
-                    date_sb = datetime.datetime.strptime(dict_sb.get(glo_sb_history_date), '%d.%m.%Y').strftime('%Y-%m-%d')
-                    price_sb = float(dict_sb.get(glo_sb_history_price))
-                    signal_sb = dict_sb.get(glo_sb_history_signal)
-                    for dict_date_nn in list_of_dicts_nn:
-                        # microsec -> sec + 1 (to ensure ends at correct side of date)
-                        epoch_sec = int(dict_date_nn.get(glo_nn_history_time)/1000)+1
-                        # epoch_sec -> 'YYYY-MM-DD'
-                        date_nn = time.strftime('%Y-%m-%d', time.localtime(epoch_sec))
-                        price_nn = dict_date_nn.get(glo_nn_history_closing)
+                                # if dates of sb and nn match
+                                if date_sb == date_nn:
+                                    # positive result: end_value (closing price) is higher than start_value (intraday price)
+                                    if dict_sb.get(glo_sb_history_signal) == 'BUY':
+                                        percentChange = mod_shared.getPercentChange(price_sb, price_nn) # start value; end value
+                                        buy_percent_changes.append(percentChange)
+                                    elif dict_sb.get(glo_sb_history_signal) == 'SELL' or dict_sb.get(glo_sb_history_signal) == 'SHORT':
+                                        percentChange = mod_shared.getPercentChange(price_sb, price_nn) # start value; end value
+                                        sellAndShort_percent_changes.append(percentChange)
 
-                        # if dates of sb and nn match
-                        if date_sb == date_nn:
-                            # positive result: end_value (closing price) is higher than start_value (intraday price)
-                            if dict_sb.get(glo_sb_history_signal) == 'BUY':
-                                percentChange = mod_shared.getPercentChange(price_sb, price_nn) # start value; end value
-                                buy_percent_changes.append(percentChange)
-                            elif dict_sb.get(glo_sb_history_signal) == 'SELL' or dict_sb.get(glo_sb_history_signal) == 'SHORT':
-                                percentChange = mod_shared.getPercentChange(price_sb, price_nn) # start value; end value
-                                sellAndShort_percent_changes.append(percentChange)
+                        # delete data of historic prices after usage
+                        stock.pop(mod_shared.glo_colName_historySignalPrice, None)
 
-                # delete data of historic prices after usage
-                row.pop(mod_shared.glo_colName_historySignalPrice, None)
+                        median_sellAndShort_change = round(median(sellAndShort_percent_changes),2)
+                        average_sellAndShort_change = round(sum(sellAndShort_percent_changes)/float(len(sellAndShort_percent_changes)), 2)
+                        median_buy_change = round(median(buy_percent_changes), 2)
+                        average_buy_change = round(sum(buy_percent_changes)/float(len(buy_percent_changes)), 2)
+                        sum_medianSellAndShortChange_and_buyAndFailMedianKeyValue = round(stock.get(mod_shared.glo_colName_buyAndFailMedian_keyValue) + median_sellAndShort_change, 2)
+                        sum_averageSellAndShortChange_and_buyAndFailAveragenKeyValue = round(stock.get(mod_shared.glo_colName_buyAndFailAverage_keyValue) + average_sellAndShort_change, 2)
+                        
+                        list_of_tuples = [(mod_shared.glo_colName_median_sell_intradayClosingChange_percent, median_sellAndShort_change),
+                            (mod_shared.glo_colName_average_sell_intradayClosingChange_percent, average_sellAndShort_change),
+                            (mod_shared.glo_colName_median_buy_intradayClosingChange_percent, median_buy_change),
+                            (mod_shared.glo_colName_average_buy_intradayClosingChange_percent, average_buy_change),
+                            (mod_shared.glo_colName_buyAndFailMedian_keyValue_minus_median_sell_intradayClosingChange_percent, sum_medianSellAndShortChange_and_buyAndFailMedianKeyValue),
+                            (mod_shared.glo_colName_buyAndFailAverage_keyValue_minus_average_sell_intradayClosingChange_percent, sum_averageSellAndShortChange_and_buyAndFailAveragenKeyValue)]
 
-                median_sellAndShort_change = round(median(sellAndShort_percent_changes),2)
-                average_sellAndShort_change = round(sum(sellAndShort_percent_changes)/float(len(sellAndShort_percent_changes)), 2)
-                median_buy_change = round(median(buy_percent_changes), 2)
-                average_buy_change = round(sum(buy_percent_changes)/float(len(buy_percent_changes)), 2)
-                
-                sum_medianSellAndShortChange_and_buyAndFailMedianKeyValue = row.get(mod_shared.glo_colName_buyAndFailMedian_keyValue) - abs(median_sellAndShort_change)
-                
-                list_of_tuples = [(mod_shared.glo_colName_median_sell_intradayClosingChange_percent, median_sellAndShort_change),
-                    (mod_shared.glo_colName_average_sell_intradayClosingChange_percent, average_sellAndShort_change),
-                    (mod_shared.glo_colName_median_buy_intradayClosingChange_percent, median_buy_change),
-                    (mod_shared.glo_colName_average_buy_intradayClosingChange_percent, average_buy_change),
-                    (mod_shared.glo_colName_buyAndFailMedian_keyValue_minus_median_sell_intradayClosingChange_percent, sum_medianSellAndShortChange_and_buyAndFailMedianKeyValue)]
+                        stock.update(OrderedDict(list_of_tuples))
 
-                row.update(OrderedDict(list_of_tuples))
-               
-        return temp_stockInfo_list
+                        stockInfo_request_success.append(stock)
+                else:
+                    print('no Nordnet match for', stock.get(mod_shared.glo_colName_sbNameshort), 'with query:', query)
+                    stocks_not_matched.append(stock.get(mod_shared.glo_colName_sbNameshort))
+        
+            if list_of_stockRequests_failed and attempts_counter < max_attempts:
+                print('\nstock url requests failed:')
+                stock_counter=1
+                for stock_failed in list_of_stockRequests_failed:
+                    print(str(stock_counter)+': '+stock_failed.get(mod_shared.glo_colName_sbNameshort))
+                    stock_counter += 1
+                stockInfo_list = list(list_of_stockRequests_failed)
+                print('\nRetrying...')
+            else:
+                requests_should_retry = False
+
+        if stocks_not_matched:
+            print('\nstocks not matched on Nordnet:')
+            pprint(stocks_not_matched)
+            sbj = 'stocks not matched on Nordnet inside '+inspect.stack()[0][3]
+            mod_shared.sendEmail(sbj, stocks_not_matched)
+
+        if list_of_stockRequests_failed:
+            print('\nStocks failed after '+ str(max_attempts) +' attempts - discarding')
+            stock_counter=1
+            body = []
+            for stock_failed in list_of_stockRequests_failed:
+                body.append(stock_failed.get(mod_shared.glo_colName_sbNameshort))
+                print(str(stock_counter)+': '+stock_failed.get(mod_shared.glo_colName_sbNameshort))
+                stock_counter += 1
+            sbj = 'Failed stock requests inside '+inspect.stack()[0][3]
+            mod_shared.sendEmail(sbj, body)
+
+        return stockInfo_request_success
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
-
-#test_ def strigToFLoat(temp_glo_filteredStockInfo_list, columnsToFloat_list):
-#     try:
-#         for row in temp_glo_filteredStockInfo_list:
-#             for column in columnsToFloat_list:
-#                 if row[column]: #true if string is not empty 
-#                     row[column] = float(row[column])
-#         return temp_glo_filteredStockInfo_list
-#     except Exception as e:
-#         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e)) 
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
 
 def stringToFLoat(list_to_convert, list_of_key_exceptions):
     try:
@@ -513,19 +571,19 @@ def stringToFLoat(list_to_convert, list_of_key_exceptions):
                         pass
         return list_to_convert
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))   
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')   
 
-def filterStocksToWatch(local_glo_stockInfoUpdated_list):
+def filterStocksToWatch(stockInfoUpdated_list):
     try:
         list_of_key_exceptions = [
             mod_shared.glo_colName_market_id,
             mod_shared.glo_colName_identifier_id
         ]
-        local_glo_stockInfoUpdated_list = stringToFLoat(local_glo_stockInfoUpdated_list, list_of_key_exceptions)
+        stockInfoUpdated_list = stringToFLoat(stockInfoUpdated_list, list_of_key_exceptions)
         # GROUP1: Stable
         # filter out minimum x percent buy correct
         temp_glo_filteredStockInfo_group1_list = filterFilteredStockInfo(mod_shared.glo_colName_24_buys_correct_percent, 
-            65, local_glo_stockInfoUpdated_list)
+            65, stockInfoUpdated_list)
 
         # filter out minumum x buyAndFail_median_keyvalue
         temp_glo_filteredStockInfo_group1_list = filterFilteredStockInfo(mod_shared.glo_colName_buyAndFailMedian_keyValue, 
@@ -565,7 +623,7 @@ def filterStocksToWatch(local_glo_stockInfoUpdated_list):
 
         # GROUP2: High risk
         # remove empty cells
-        temp_glo_filteredStockInfo_group2_list = filterFilteredStockInfo(mod_shared.glo_colName_buyAndFailAverage_keyValue, '', local_glo_stockInfoUpdated_list)
+        temp_glo_filteredStockInfo_group2_list = filterFilteredStockInfo(mod_shared.glo_colName_buyAndFailAverage_keyValue, '', stockInfoUpdated_list)
         # sort highest AVERAGE (overall) percent change
         sorted_buyAndFail_average_keyvalue_list = []
         sorted_buyAndFail_average_keyvalue_list = sorted(temp_glo_filteredStockInfo_group2_list, 
@@ -613,7 +671,7 @@ def filterStocksToWatch(local_glo_stockInfoUpdated_list):
 
         return stockToBuy_list
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))    
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')    
 
 def deleteKeyValuesFromOrderedDict(list_to_update, list_of_keys):
     try:
@@ -622,7 +680,7 @@ def deleteKeyValuesFromOrderedDict(list_to_update, list_of_keys):
                 del row1[keyRow]
         return list_to_update
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))  
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')  
 
 def addKeyToOrderedDict(list_to_update, list_of_keys):
     try:
@@ -631,46 +689,65 @@ def addKeyToOrderedDict(list_to_update, list_of_keys):
                 row1[keyRow] = ''
         return list_to_update
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))      
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')      
 
 def setAllStockLists():
     print ('\nSTART', inspect.stack()[0][3])
     try:
-        if glo_test_bool:
-            print(inspect.stack()[0][3], 'in TEST MODE!')
-            temp_stockInfo_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, 'stock-info-raw-4.csv')
-        else:
-            temp_stockInfo_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList,  mod_shared.glo_stockInfo_file_raw)
-        print('temp_stockInfo_list:', len(temp_stockInfo_list))
-        
-        temp_blacklist = mod_shared.getStockListFromFile(mod_shared.path_input_createList, mod_shared.glo_blacklist_file)
-        print('temp_blacklist:', len(temp_blacklist))
+        if glo_runGetStocksFromSb_bool:
+            if glo_test_bool:
+                print(inspect.stack()[0][3], 'in TEST MODE!')
+                stockInfo_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList+mod_shared.path_input_test, glo_stockInfo_test_file)
+            else:
+                stockInfo_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList,  mod_shared.glo_stockInfo_file_raw)
+            print('stockInfo_list:', len(stockInfo_list))
+            
+            blacklist = mod_shared.getStockListFromFile(mod_shared.path_input_createList, mod_shared.glo_blacklist_file)
+            print('blacklist:', len(blacklist))
 
-        temp_complimentary_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, mod_shared.glo_complimentary_file)
-        print('temp_complimentary_list:', len(temp_complimentary_list))
-        
-        # remove rows blacklist from stockInfo list
-        temp_stockInfo_list = [dict_item for dict_item in temp_stockInfo_list if dict_item not in temp_blacklist]
-        print('temp_stockInfo_list after blacklist removal:', len(temp_stockInfo_list))
+            # remove rows blacklist from stockInfo list
+            stockInfo_list = [dict_item for dict_item in stockInfo_list if dict_item not in blacklist]
+            print('stockInfo_list after blacklist removal:', len(stockInfo_list))
 
-        temp_stockInfo_list = getStocksFromSb(temp_stockInfo_list)
+            stockInfo_list = getStocksFromSb(stockInfo_list)
 
-        # updating items from complimentary list to temp_stockInfo_list
+            if glo_test_bool:
+                writeStockList(stockInfo_list, mod_shared.path_input_createList + glo_test_str+mod_shared.glo_stockAfterSb_file_updated)
+            else:
+                writeStockList(stockInfo_list, mod_shared.path_input_createList + mod_shared.glo_stockAfterSb_file_updated)
+
+        if not glo_runGetStocksFromSb_bool:
+            print('glo_runGetStocksFromSb_bool was', glo_runGetStocksFromSb_bool, '- NOT running getStocksFromSb')
+            if glo_test_bool:
+                stockInfo_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, glo_test_str+mod_shared.glo_stockAfterSb_file_updated)
+            else:
+                stockInfo_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, mod_shared.glo_stockAfterSb_file_updated)
+
+            # convert strings to float
+            stockInfo_list = stringToFLoat(stockInfo_list, [])
+            # convert string list to list
+            for stock in stockInfo_list:
+                if stock[mod_shared.glo_colName_historySignalPrice]:
+                    stock[mod_shared.glo_colName_historySignalPrice] = ast.literal_eval(stock.get(mod_shared.glo_colName_historySignalPrice))
+
+        complimentary_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, mod_shared.glo_complimentary_file)
+
+        # updating items from complimentary list to stockInfo_list
         list_of_key_selectors = [mod_shared.glo_colName_sbNameshort]
         list_of_key_overwriters = list(mod_shared.glo_complimentary_colNames.keys())
-        temp_stockInfo_list = mod_shared.updateListFromListByKeys(temp_stockInfo_list,
-            temp_complimentary_list,
+        stockInfo_list = mod_shared.updateListFromListByKeys(stockInfo_list,
+            complimentary_list,
             list_of_key_selectors, 
             list_of_key_overwriters) # list to update, list to update from
         
-        temp_stockInfo_list = getStocksFromNn(temp_stockInfo_list)
-        
-        temp_stockInfo_list = mod_shared.setListKeys(temp_stockInfo_list, mod_shared.glo_stockInfoUpdated_colNames)
+        stockInfo_list = getStocksFromNn(stockInfo_list)
+
+        stockInfo_list = mod_shared.setListKeys(stockInfo_list, mod_shared.glo_stockInfoUpdated_colNames)
 
         if glo_test_bool:
-            writeStockList(temp_stockInfo_list, mod_shared.path_input_createList + glo_test_str+mod_shared.glo_stockInfo_file_updated)
+            writeStockList(stockInfo_list, mod_shared.path_input_createList + glo_test_str+mod_shared.glo_stockInfo_file_updated)
         else:
-            writeStockList(temp_stockInfo_list, mod_shared.path_input_createList + mod_shared.glo_stockInfo_file_updated)
+            writeStockList(stockInfo_list, mod_shared.path_input_createList + mod_shared.glo_stockInfo_file_updated)
     except Exception as e:
         print ("ERROR in file", glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
     else:
@@ -680,17 +757,20 @@ def setStockToBuyList():
     print ('\nSTART', inspect.stack()[0][3])
     try:
         if glo_test_bool:
-            local_glo_stockInfoUpdated_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, glo_test_str+mod_shared.glo_stockInfo_file_updated)
+            stockInfoUpdated_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, glo_test_str+mod_shared.glo_stockInfo_file_updated)
         else:
-            local_glo_stockInfoUpdated_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, mod_shared.glo_stockInfo_file_updated)
+            stockInfoUpdated_list = mod_shared.getStockListFromFile(mod_shared.path_input_createList, mod_shared.glo_stockInfo_file_updated)
 
-        stockToBuy_list = filterStocksToWatch(local_glo_stockInfoUpdated_list)
+        stockToBuy_list = filterStocksToWatch(stockInfoUpdated_list)
+        
         if glo_test_bool:
             print(inspect.stack()[0][3], 'in TEST MODE!')
             writeStockList(stockToBuy_list, mod_shared.path_input_createList + glo_test_str+mod_shared.glo_stockToBuy_allData_file)
         else:
             writeStockList(stockToBuy_list, mod_shared.path_input_createList+mod_shared.glo_stockToBuy_allData_file)
+       
         stockToBuy_list = mod_shared.setListKeys(stockToBuy_list, mod_shared.glo_stockToBuy_colNames)
+        
         if glo_test_bool:
             writeStockList(stockToBuy_list, mod_shared.path_input_main + glo_test_str+mod_shared.glo_stockToBuy_file)
         else:
@@ -700,11 +780,11 @@ def setStockToBuyList():
     else:
         print('END', inspect.stack()[0][3], '\n')
 
-
 def main():
     try:
-        setAllStockLists()
-        time.sleep(5)
+        if glo_runSetAllStockLists_bool:
+            setAllStockLists()
+        time.sleep(3)
         setStockToBuyList()
     except Exception as e:
         print ("ERROR in file", glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
@@ -713,15 +793,6 @@ def main():
 if __name__ == "__main__":
    main()
 
-# setSbWatchlist
-# - get stock list to watch
-# - add stocks held
-    # - check what is held
-    # - check if held exist in new list
-    # - add found from stock-info-updated (only needed keys)
-# - add stocks with active signal (buy or sell)
-    # - see above
-# - remove watchlist
-# - set new watchlist
-# - confirm new watchlist match with new stock list
-
+# todo
+# - handle error in getStocksFromNn: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response',))
+# - make it possible to not having to start over getStocksFromSb and getStocksFromNn from beginning in case of error/fail

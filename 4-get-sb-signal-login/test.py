@@ -2,76 +2,96 @@ import shared as mod_shared
 import create_stock_lists as mod_list
 from pdb import set_trace as BP
 from bs4 import BeautifulSoup
-import requests
 import json
 import time
 import datetime
+import inspect
 from statistics import median
 from pprint import pprint
 from pprint import pformat
+import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+import sys
+import os    
+
+glo_file_this = os.path.basename(__file__)
+
+def test():
+    try:
+        test = 'shit'
+        [][2]
+    except Exception as e:
+        # print ('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
+        # print ('Error on line', format(sys.exc_info()[-1].tb_lineno), ':', str(e))
+        # print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
+
+test()
+
+# # def requests_retry_session(retries=3, backoff_factor=0.3, status_forcelist=(500, 502, 504), session=None):
+# def requests_retry_session(retries=3, backoff_factor=0.3, session=None):
+#     try:
+#         session = session or requests.Session()
+#         retry = Retry(
+#             total=retries,
+#             read=retries,
+#             connect=retries,
+#             backoff_factor=backoff_factor,
+#             # status_forcelist=status_forcelist,
+#         )
+#         adapter = HTTPAdapter(max_retries=retry)
+#         session.mount('http://', adapter)
+#         session.mount('https://', adapter)
+#         return session
+        
+#     except Exception as e:
+#         print ('ERROR in function' ,inspect.stack()[0][3], ':', str(e))
+
+# try:
+#     url1 = 'http://localhost:9999'
+#     url2 = 'https://www.swedishbulls.com/Default.aspx?lang=en'
+#     urls = [url1, url2]
+#     list_of_stocks_failed = []
+#     stock_requests_retry = False
+#     while urls:
+#         list_of_stocks_to_retry = []
+#         for url in urls:
+#             t0 = time.time()
+#             try:
+#                 print('\nrequesting', url)
+#                 response = requests_retry_session().get(url)
+#             except Exception as x:
+#                 print('It failed :(', str(x))
+#                 if stock_requests_retry:
+#                     list_of_stocks_failed.append(url)
+#                     pass
+#                 else:
+#                     list_of_stocks_to_retry.append(url)
+#                 continue
+#             else:
+#                 print('It eventually worked', response.status_code)
+#             finally:
+#                 t1 = time.time()
+#                 print('Took', t1 - t0, 'seconds')
+#         if list_of_stocks_to_retry:
+#             print('\nstock url requests failed:')
+#             pprint(list_of_stocks_to_retry)
+#             pprint('trying one more time')
+#             urls = list(list_of_stocks_to_retry)
+#             stock_requests_retry = True
+#         else:
+#             urls = False
+
+#     print('\nurls still failed after retry:')
+#     pprint(list_of_stocks_failed)
+#     # sendEmail
+
+# except Exception as x:
+#     print('outer Exception')
+#     pass
 
 
-# list_of_stockStatusDicts = []
-# OrderedDict([('NAMESHORT_SB', 'ARCT.ST'),
-#              ('list_of_dicts',
-#               'https://www.swedishbulls.com/SignalPage.aspx?lang=en&Ticker=ARCT.ST')]
-
-glo_history_date_sb = 'date'
-glo_history_price_sb = 'price'
-glo_history_signal_sb = 'signal'
-
-with requests.Session() as s:
-    url = 'https://www.nordnet.se/graph/instrument/11/67373?from=1970-01-01&to=2018-04-19&fields=last,open,high,low,volume'
-    r = s.get(url)
-    if r.status_code != 200:
-        print('something when wrong in URL request:', r.status_code)
-        print('URL:', url)
-    # BP()
-    soup = BeautifulSoup(r.content, 'html.parser') # active are placed in "share"
-    list_of_dicts_nn = json.loads(str(soup))
-    # remove last item
-    # list_of_dicts_nn = list_of_dicts_nn[:-1]
-
-    list_of_dicts_sb = [
-        {'date': '13.04.2018', 'price': '0.6920', 'signal': 'SHORT'},
-        {'date': '11.04.2018', 'price': '0.7010', 'signal': 'BUY'},
-        {'date': '03.04.2018', 'price': '0.7190', 'signal': 'SELL'}
-    ]
-
-    buy_percent_changes = []
-    sellAndShort_percent_changes = []
-    for dict_sb in list_of_dicts_sb:
-        # '%d.%m.%Y' -> '%Y-%m-%d'
-        date_sb = datetime.datetime.strptime(dict_sb.get(glo_history_date_sb), '%d.%m.%Y').strftime('%Y-%m-%d')
-        price_sb = float(dict_sb.get(glo_history_price_sb))
-        signal_sb = dict_sb.get(glo_history_signal_sb)
-        for dict_date_nn in list_of_dicts_nn:
-            # microsec -> sec + 1 (to ensure ends at correct side of date)
-            epoch_sec = int(dict_date_nn.get('time')/1000)+1
-            # epoch_sec -> 'YYYY-MM-DD'
-            date_nn = time.strftime('%Y-%m-%d', time.localtime(epoch_sec))
-            price_nn = dict_date_nn.get('last')
-            if date_sb == date_nn:
-                print('\ndate nn:', date_nn, '\tsignal sb:', signal_sb)
-                # positive result: end_value (closing price) is higher than start_value (intraday price)
-                if dict_sb.get(glo_history_signal_sb) == 'BUY':
-                    print('BUY')
-                    percentChange = mod_shared.getPercentChange(price_sb, price_nn) # start value; end value
-                    print('percent change:', percentChange)
-                    buy_percent_changes.append(percentChange)
-                elif dict_sb.get(glo_history_signal_sb) == 'SELL' or dict_sb.get(glo_history_signal_sb) == 'SHORT':
-                    print('SELL or SHORT')
-                    percentChange = mod_shared.getPercentChange(price_sb, price_nn) # start value; end value
-                    print('percent change:', percentChange)
-                    sellAndShort_percent_changes.append(percentChange)
-    
-    median_sellAndShort_change = median(sellAndShort_percent_changes)
-    average_sellAndShort_change = sum(sellAndShort_percent_changes)/float(len(sellAndShort_percent_changes))
-    median_buy_change = median(buy_percent_changes)
-    average_buy_change = sum(buy_percent_changes)/float(len(buy_percent_changes))
-    BP()
-    pass
-        # if time_local != '00:00:00':
         #     pprint(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(epoch_sec)))
         #     pprint(dict_date.get('time'))
         #     BP()
@@ -94,3 +114,18 @@ with requests.Session() as s:
     # 13.04.2018  
     # 0.6920  
     # SHORT
+
+# (median_buy_success_change - glo_costOfBuy)*buys_correct_decimal_24
+# + 
+# (median_buy_failed_change + glo_costOfBuy)*(1-buys_correct_decimal_24)
+
+
+# (median_buy_success_change - x)*y + (median_buy_failed_change + x)*(-y+1)
+
+# <->
+# (y * (median_buy_success_change - x)*1) + (-y(median_buy_failed_change + x)*1
+
+# <->
+# y ((median_buy_success_change - x) + (-(median_buy_failed_change + x)) )
+
+# yx (median_buy_success_change -1 ) + (-median_buy_failed_change)

@@ -197,7 +197,7 @@ def writeOrderStatistics(sbStockNameShort, payloadOrder):
                 statSignal: payloadOrder[glo_orderNn_key_side], 
                 statPrice: payloadOrder[glo_orderNn_key_price]})
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def writeConfirmationStatistics(sbStockNameShort, sbSignalType, sbSignalConf, sbLastPrice, sbPriceLevel):
@@ -229,7 +229,7 @@ def writeConfirmationStatistics(sbStockNameShort, sbSignalType, sbSignalConf, sb
                 glo_stat_key_priceDifference: str(round(100*(float(sbLastPrice)/float(sbPriceLevel)), 3))}
             writer.writerow(statDict)
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))   
 
 def isConfirmationStatSet(sbStockNameShort, sbSignalConf):
@@ -248,7 +248,7 @@ def isConfirmationStatSet(sbStockNameShort, sbSignalConf):
                     return True
             return False
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))  
 
 # def initStockStatus():
@@ -259,7 +259,7 @@ def isConfirmationStatSet(sbStockNameShort, sbSignalConf):
     #             for row in records:
     #                 setStockList(row)
     #     except Exception as e:
-    #             print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+    #             print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
     #             mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
     #     else:
     #         print('END', inspect.stack()[0][3], '\n')
@@ -269,7 +269,7 @@ def isConfirmationStatSet(sbStockNameShort, sbSignalConf):
 #         global glo_stockStatus_list
 #         glo_stockStatus_list.append(rowDict)
 #     except Exception as e:
-#         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+#         print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
 #         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getRemovalList(list_to_keep, list_to_remove, key_selector):
@@ -283,7 +283,7 @@ def getRemovalList(list_to_keep, list_to_remove, key_selector):
                     removal_list.append(temp_ordered)
         return removal_list
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getStockStatus():
@@ -421,7 +421,7 @@ def resetStockStatus(stockStatus_list):
             row[mod_shared.glo_colName_priceTemp] = glo_status_value_priceTempDefault
         return stockStatus_list
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def isStockHeld(sbStockNameShort):
@@ -432,7 +432,7 @@ def isStockHeld(sbStockNameShort):
                 return True
         return False # if no match
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 # def setStocksNumberHeld(sbStockNameShort, amountStr):
@@ -445,7 +445,7 @@ def isStockHeld(sbStockNameShort):
 #                 row.update({mod_shared.glo_colName_amountHeld:amountStr})
 #         glo_stockStatus_list = temp_glo_stockStatus_list
 #     except Exception as e:
-#         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+#         print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
 #         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getStocksNumberHeld(sbStockNameShort):
@@ -459,7 +459,7 @@ def getStocksNumberHeld(sbStockNameShort):
                     raise ValueError(inspect.stack()[0][3] + ': returned empty string')
                     return None
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 # def updateStocksNumberHeld(sbStockNameShort, numberOfStocksStr, sbSignalType): # subtract volume from current held
@@ -478,7 +478,7 @@ def getStocksNumberHeld(sbStockNameShort):
     #                 row.update({mod_shared.glo_colName_amountHeld:newStockNumberHeld})
     #     glo_stockStatus_list = temp_glo_stockStatus_list
     # except Exception as e:
-    #     print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+    #     print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
 
 def setStockActive(sbStockNameShort, sbActiveType): #'BUY' or 'SELL'
     print ('\n', inspect.stack()[0][3])
@@ -489,7 +489,7 @@ def setStockActive(sbStockNameShort, sbActiveType): #'BUY' or 'SELL'
                 row.update({mod_shared.glo_colName_active:sbActiveType})
         mod_shared.setStockListGlobally(local_glo_stockStatus_list, mod_shared.glo_stockStatus_list_name)
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def isStockActive(sbStockNameShort, sbActiveType):
@@ -504,7 +504,7 @@ def isStockActive(sbStockNameShort, sbActiveType):
                     return True
         return False # if no match
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setStockActiveTemp(sbStockNameShort, sbActiveType):
@@ -516,7 +516,7 @@ def setStockActiveTemp(sbStockNameShort, sbActiveType):
                 row.update({mod_shared.glo_colName_activeTemp:sbActiveType})
         mod_shared.setStockListGlobally(local_glo_stockStatus_list, mod_shared.glo_stockStatus_list_name)
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def delStockActiveTemp(sbStockNameShort):
@@ -527,7 +527,7 @@ def delStockActiveTemp(sbStockNameShort):
                 row.update({mod_shared.glo_colName_activeTemp:glo_status_value_activeTempDefault})
         mod_shared.setStockListGlobally(local_glo_stockStatus_list, mod_shared.glo_stockStatus_list_name)
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def isStockActiveTemp(sbStockNameShort, sbActiveType):
@@ -542,7 +542,7 @@ def isStockActiveTemp(sbStockNameShort, sbActiveType):
                     return True
         return False # if no match
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 # def setStockPrice(s):
@@ -561,7 +561,7 @@ def isStockActiveTemp(sbStockNameShort, sbActiveType):
     #             row[mod_shared.glo_colName_price] = priceStockStr
     #     glo_stockStatus_list = temp_glo_stockStatus_list
     # except Exception as e:
-    #         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+    #         print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
 
 # def setStockPriceTemp(sbStockNameShort, orderNnValuePrice):
     # print ('\n', inspect.stack()[0][3])
@@ -573,12 +573,12 @@ def isStockActiveTemp(sbStockNameShort, sbActiveType):
     #             row.update({mod_shared.glo_colName_priceTemp:orderNnValuePrice})
     #     glo_stockStatus_list = temp_glo_stockStatus_list
     # except Exception as e:
-    #     print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+    #     print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
 
 # def delStockPriceTemp(sbStockNameShort, orderNnValuePrice):
     # try:
     # except Exception as e:
-    #     print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))    
+    #     print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')    
 
 # def isStockPriceChanged(sbStockNameShort, sbSignalType):
 #     try:
@@ -607,7 +607,7 @@ def isStockActiveTemp(sbStockNameShort, sbActiveType):
 #                     else:
 #                         return False
 #     except Exception as e:
-#         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+#         print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
 #         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getSbNameShortByNnName(nnStockName):
@@ -617,7 +617,7 @@ def getSbNameShortByNnName(nnStockName):
             if row.get(mod_shared.glo_colName_nameNordnet) == nnStockName:
                 return row.get(mod_shared.glo_colName_sbNameshort)
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
     else:
         msg = 'could not match', nnStockName, 'with', mod_shared.glo_colName_sbNameshort
@@ -636,7 +636,7 @@ def isMaxStockHeldAndActive():
         else:
             return False
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 # def getAmountAvailableStaticFromNn(amountInt):
@@ -645,7 +645,7 @@ def isMaxStockHeldAndActive():
 #         global glo_amountAvailableStatic
 #         glo_amountAvailableStatic = amountInt
 #     except Exception as e:
-#         print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+#         print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
 #         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setAmountAvailable(amountInt):
@@ -654,7 +654,7 @@ def setAmountAvailable(amountInt):
         global glo_amountAvailable
         glo_amountAvailable = amountInt
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setAmountAvailableStatic(amountInt):
@@ -663,7 +663,7 @@ def setAmountAvailableStatic(amountInt):
         global glo_amountAvailableStatic
         glo_amountAvailableStatic = amountInt
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def updateAmountAvailable(sbSignalType, payloadOrder):
@@ -682,7 +682,7 @@ def updateAmountAvailable(sbSignalType, payloadOrder):
             else:
                 glo_amountAvailable += int(float(payloadOrder.get(glo_orderNn_key_price)) * float(payloadOrder.get(glo_orderNn_key_volume)))
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getAmountAvailable():
@@ -694,7 +694,7 @@ def getAmountAvailable():
         else:
             return amountAvailable
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getCurrentNumberOfStocksHeld():
@@ -706,7 +706,7 @@ def getCurrentNumberOfStocksHeld():
                 counter += 1
         return counter
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getCurrentNumberOfStocksActiveBuy():
@@ -718,7 +718,7 @@ def getCurrentNumberOfStocksActiveBuy():
                 counter += 1
         return counter
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getCurrentNumberOfStocksActiveSell():
@@ -730,7 +730,7 @@ def getCurrentNumberOfStocksActiveSell():
                 counter += 1
         return counter
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setMaxNumberOfStocks(numberOfStocksInt):
@@ -738,14 +738,14 @@ def setMaxNumberOfStocks(numberOfStocksInt):
         global glo_maxNumberOfStocks
         glo_maxNumberOfStocks = numberOfStocksInt
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getMaxNumberOfStocks():
     try:
         return glo_maxNumberOfStocks
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setMaxNumberOfActiveAboveMaxHeld(numberOfStocksInt):
@@ -753,14 +753,14 @@ def setMaxNumberOfActiveAboveMaxHeld(numberOfStocksInt):
         global glo_maxNumberOfActiveAboveMaxHeld
         glo_maxNumberOfActiveAboveMaxHeld = numberOfStocksInt
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getMaxNumberOfActiveAboveMaxHeld():
     try:
         return glo_maxNumberOfActiveAboveMaxHeld
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getNnStockPrice(sbStockNameShort, sbSignalType, s):
@@ -787,7 +787,7 @@ def getNnStockPrice(sbStockNameShort, sbSignalType, s):
         elif sbSignalType == glo_sbSignalBuy:
             return priceStockStr
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e)) 
 
 def getNnStockVolume(orderNnValuePriceStr):
@@ -802,7 +802,7 @@ def getNnStockVolume(orderNnValuePriceStr):
         
         return orderNnValueVolumeStr
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getNnStockValidUntil():
@@ -828,7 +828,7 @@ def getNnStockValidUntil():
         return orderNnStockValidUntil
         # if not marketopen, valid until next day open
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getPayloadOrderValues(sbStockNameShort, sbSignalType, orderNnValuePrice):
@@ -860,7 +860,7 @@ def getPayloadOrderValues(sbStockNameShort, sbSignalType, orderNnValuePrice):
                 return payloadOrder
         return None
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))  
 
 def isWeekDay():
@@ -970,7 +970,7 @@ def isLastPriceWithinBuyLevel(sbPriceLevelStr, sbLastPriceStr, sbStockNameShort)
         else:
             return False
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))   
 
 def createPidFile(path_rel, name_of_file):
@@ -980,7 +980,7 @@ def createPidFile(path_rel, name_of_file):
         with open(file_pid, "w") as file:
             file.write(str(pidInt))
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
 
 def resetTempActive():
@@ -991,7 +991,7 @@ def resetTempActive():
             row[mod_shared.glo_colName_activeTemp] = glo_status_value_activeTempDefault
         mod_shared.setStockListGlobally(local_glo_stockStatus_list, mod_shared.glo_stockStatus_list_name)
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))   
 
 def resetDaily():
@@ -1008,7 +1008,7 @@ def resetDaily():
         # reset error counter
         mod_shared.resetCounterError()
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))   
 
 def nordnetPlaceOrder(sbStockNameShort, sbSignalType): #sbSignalType = BUY or SELL
@@ -1060,7 +1060,7 @@ def nordnetPlaceOrder(sbStockNameShort, sbSignalType): #sbSignalType = BUY or SE
             }
             mod_shared.writeErrorLog(inspect.stack()[0][3], pformat(responseDict))
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
     else:
         print('END', inspect.stack()[0][3], '\n')
@@ -1089,7 +1089,7 @@ def pretendNordnetPlaceOrder(sbStockNameShort, sbSignalType):
         # else:
         #     print('PRETEND order FAILED!')
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
     else:
         print('END', inspect.stack()[0][3], '\n')    
@@ -1143,7 +1143,7 @@ def sbGetSignal_afterMarketHours():
                         # pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
                         nordnetPlaceOrder(sbStockNameShort, sbSignal)
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
     else:
         print('END', inspect.stack()[0][3], '\n')
@@ -1224,7 +1224,7 @@ def sbGetSignal():
                             # pretendNordnetPlaceOrder(sbStockNameShort, sbSignal)
                             nordnetPlaceOrder(sbStockNameShort, sbSignal)
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         mod_shared.writeErrorLog(inspect.stack()[0][3], str(e))
     else:
         print('END', inspect.stack()[0][3], '\n')    
@@ -1315,7 +1315,6 @@ setAmountAvailableStatic(140)
 if isStockFileOlderThanCondition(glo_timeConditionRerunStockFile, mod_shared.glo_stockToBuy_file):
     askIfToRerunStockFile()
 
-# !!!!! setStockStatusFromNn in test mode
 stocksToBuy_list = setAndGetStockStatusFromNn()
 mod_shared.setStockListGlobally(stocksToBuy_list, mod_shared.glo_stockStatus_list_name)
 
@@ -1445,7 +1444,7 @@ print ('END of script')
 #                 return payloadOrder
 #         return None
 #     except Exception as e:
-#             print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))   
+#             print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')   
 
 # def getNnStockPricePretend(sbStockNameShort, sbSignalType, s):
 #     try:
@@ -1468,7 +1467,7 @@ print ('END of script')
 #         elif sbSignalType == glo_sbSignalBuy:
 #             return priceStockStr
 #     except Exception as e:
-#             print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e)) 
+#             print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n') 
                 # setStockStatus() # only non-tempActive will pass down here
 
                     # if isStockActiveLongTime((sbStockNameShort, sbSignal))

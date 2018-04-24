@@ -3,6 +3,7 @@ from pdb import set_trace as BP
 import os
 import smtplib
 import inspect
+import sys
 from pprint import pprint
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -31,7 +32,7 @@ def send_mail(send_to, subject, text, files):
         smtp.sendmail(credGmailAutotrading.get('username'), send_to, msg.as_string())
         smtp.close()
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e)) 
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n') 
 
 def getListOfFiles():
     try:
@@ -47,7 +48,7 @@ def getListOfFiles():
         files_with_path += files_custom
         return files_with_path
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))     
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')     
 
 def main():
     try:
@@ -55,7 +56,7 @@ def main():
         pprint(files_with_path)
         send_mail('simon.autotrading@gmail.com', 'autotrade files', '', files_with_path)
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))     
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')     
 
 if __name__ == "__main__":
    main()

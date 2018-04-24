@@ -4,10 +4,13 @@ import os
 import yaml
 from robobrowser import RoboBrowser
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 import smtplib
 import time
 import datetime
 import csv
+import sys
 from collections import OrderedDict
 from pprint import pprint
 
@@ -19,6 +22,7 @@ path_input_main = path_input + 'main/'
 path_input_createList = path_input + 'create-stock-lists/'
 path_input_monitorProcess = path_input + 'main-process-monitor/'
 path_input_template = path_input + 'templates/'
+path_input_test = 'test_files/'
 
 # files
 glo_file_this = os.path.basename(__file__)
@@ -28,6 +32,7 @@ glo_stockInfo_file_raw = 'stock-info-raw.csv'
 glo_blacklist_file = 'blacklist.csv'
 glo_complimentary_file = 'nn-complimentary-list.csv'
 glo_stockInfo_file_updated = 'stock-info-updated.csv'
+glo_stockAfterSb_file_updated = 'stock-info-afterSb.csv'
 glo_stockToBuy_allData_file = 'stock-to-buy-all-data.csv'
 glo_stockToBuy_file = 'stock-to-buy.csv'
 
@@ -60,21 +65,23 @@ glo_colName_24_buys_correct_percent = 'BUYS_24_PERCENT_CORRECT'
 glo_colName_buysTotal = 'BUYS_TOTAL'
 glo_colName_pricePercentChange_average = 'PRICE_CHANGE_PERCENT_AVERAGE'
 glo_colName_pricePercentChange_median = 'PRICE_CHANGE_PERCENT_MEDIAN'
-glo_colName_buyAverageFailedPerChange = 'BUY_AVERAGE_FAILED_PER_CHANGE'
-glo_colName_buyAverageSuccessPerChange = 'BUY_AVERAGE_SUCCESS_PER_CHANGE'
-glo_colName_buyMedianFailedPerChange = 'BUY_MEDIAN_FAILED_PER_CHANGE'
-glo_colName_buyMedianSuccessPerChange = 'BUY_MEDIAN_SUCCESS_PER_CHANGE'
+glo_colName_buyAverageFailedPerChange = 'BUY_AVERAGE_FAILED_PERCENT_CHANGE'
+glo_colName_buyAverageSuccessPerChange = 'BUY_AVERAGE_SUCCESS_PERCENT_CHANGE'
+glo_colName_buyMedianFailedPerChange = 'BUY_MEDIAN_FAILED_PERCENT_CHANGE'
+glo_colName_buyMedianSuccessPerChange = 'BUY_MEDIAN_SUCCESS_PERCENT_CHANGE'
 glo_colName_buyAndFailMedian_keyValue = 'BUYANDFAIL_MEDIAN_KEYVALUE'
 glo_colName_buyAndFailAverage_keyValue = 'BUYANDFAIL_AVERAGE_KEYVALUE'
-glo_colName_percentChange_highestThroughCurrent = 'PER_CHANGE_HIGHEST_THROUGH_CURRENT'
-glo_colName_stockToBuy_group = 'GROUP_BUY'
-glo_colName_compList = 'COMPLIMENTARY_LIST'
-glo_colName_historySignalPrice = 'HISTORY_SIGNAL_PRICE'
 glo_colName_median_sell_intradayClosingChange_percent = 'MEDIAN_SELL_INTRADAY-CLOSING-CHANGE_PERCENT'
 glo_colName_average_sell_intradayClosingChange_percent = 'AVERAGE_SELL_INTRADAY-CLOSING-CHANGE_PERCENT'
 glo_colName_median_buy_intradayClosingChange_percent = 'MEDIAN_BUY_INTRADAY-CLOSING-CHANGE_PERCENT'
 glo_colName_average_buy_intradayClosingChange_percent = 'AVERAGE_BUY_INTRADAY-CLOSING-CHANGE_PERCENT'
 glo_colName_buyAndFailMedian_keyValue_minus_median_sell_intradayClosingChange_percent = 'SUM_BUYANDFAIL_MEDIAN_KEYVALUE_AND_MEDIAN_SELL_INTRADAY-CLOSING-CHANGE_PERCENT'
+glo_colName_buyAndFailAverage_keyValue_minus_average_sell_intradayClosingChange_percent = 'SUM_BUYANDFAIL_AVERAGE_KEYVALUE_AND_AVERAGE_SELL_INTRADAY-CLOSING-CHANGE_PERCENT'
+glo_colName_percentChange_highestThroughCurrent = 'HIGHEST_THROUGH_CURRENT_PERCENT_CHANGE'
+
+glo_colName_stockToBuy_group = 'GROUP_BUY'
+glo_colName_compList = 'COMPLIMENTARY_LIST'
+glo_colName_historySignalPrice = 'HISTORY_SIGNAL_PRICE'
 
 # mainly trader
 glo_stockStatus_list = []
@@ -110,14 +117,14 @@ def incrCounterError():
         global glo_counter_error
         glo_counter_error += 1
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         writeErrorLog(inspect.stack()[0][3], str(e))    
 
 def getCounterError():
     try:
         return glo_counter_error
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         writeErrorLog(inspect.stack()[0][3], str(e))    
 
 def resetCounterError():
@@ -125,7 +132,7 @@ def resetCounterError():
         global glo_counter_error
         glo_counter_error += 0
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         writeErrorLog(inspect.stack()[0][3], str(e))    
 
 def writeErrorLog (callingFunction, eStr):
@@ -154,7 +161,7 @@ def writeErrorLog (callingFunction, eStr):
                     errorMsg: eStr})
                 sendEmail('ERROR: ' + callingFunction, eStr)
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
 
 def sendEmail(sbj, body):
     print ('\nSTART', inspect.stack()[0][3])
@@ -166,7 +173,7 @@ def sendEmail(sbj, body):
         smtp.login(credGmailAutotrading.get('username'), credGmailAutotrading.get('pwd'))
         smtp.sendmail(credGmailAutotrading.get('username'), credGmailAutotrading.get('username'), msg) # 1 from, 2 to
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
     else:
         print('END', inspect.stack()[0][3], '\n')
 
@@ -188,7 +195,7 @@ def getCredentials(domain):
             pwd = conf['gmail_autotrade']['password']
             return {'username': username, 'pwd': pwd}
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         writeErrorLog(inspect.stack()[0][3], str(e))
 
 def sbLogin():
@@ -203,7 +210,7 @@ def sbLogin():
         form[glo_sbLoginFormPass].value = credSb.get('pwd')
         browser.submit_form(form, submit=form[glo_sbLoginFormSubmit])
     except Exception as e: # catch error
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         writeErrorLog(inspect.stack()[0][3], str(e))
     else:
         # print('END', inspect.stack()[0][3], '\n')
@@ -244,7 +251,7 @@ def nordnetLogin():
             }
             writeErrorLog(inspect.stack()[0][3], pformat(responseDict))
     except Exception as e: # catch error
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         msg = 'status code: ' + r.status_code + '; ' + r.text
         writeErrorLog(inspect.stack()[0][3], msg)
     else:
@@ -268,7 +275,7 @@ def getSecondsFromTime(days, hours, minutes, seconds):
         
         return days*day_sec + hours*hour_sec + minutes*min_sec + seconds
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getTimestamp():
@@ -351,7 +358,7 @@ def getStockListFromFile(path_rel, name_of_list):
                 temp_list.append(getOrderedDictFromDict(rowDict, order_of_keys))
             return temp_list
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         writeErrorLog(inspect.stack()[0][3], str(e))
 
 def getColNamesFromFile(rel_path_of_file, file_name):
@@ -365,7 +372,7 @@ def getColNamesFromFile(rel_path_of_file, file_name):
                 ordered_dict[colName] = ''   
             return ordered_dict
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setListKeys(list_to_set, dict_set_from):
@@ -394,7 +401,7 @@ def setListKeys(list_to_set, dict_set_from):
         return new_ordered_list
 
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         writeErrorLog(inspect.stack()[0][3], str(e))
 
 def setGlobalColNames():
@@ -412,22 +419,39 @@ def setGlobalColNames():
         glo_stockToBuy_colNames = dict_colNames
 
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         writeErrorLog(inspect.stack()[0][3], str(e))
+
+def requests_retry_session(retries=3, backoff_factor=0.3, session=None):
+    try:
+        session = session or requests.Session()
+        retry = Retry(
+            total=retries,
+            read=retries,
+            connect=retries,
+            backoff_factor=backoff_factor,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        return session
+        
+    except Exception as e:
+        print ('ERROR in function' ,inspect.stack()[0][3], ':', str(e))
 
 def getPercentChange(start_value, end_value):
     try:
         # positive result: end_value is higher than start_value
         return ((end_value - start_value) / start_value)*100
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         writeErrorLog(inspect.stack()[0][3], str(e))    
 
 def main():
     try:
         setGlobalColNames()
     except Exception as e:
-        print ('ERROR in file', glo_file_this, 'and function' ,inspect.stack()[0][3], ':', str(e))
+        print ('\nERROR: \n\tFile:', glo_file_this, '\n\tFunction:', inspect.stack()[0][3], '\n\tLine:', format(sys.exc_info()[-1].tb_lineno), '\n\tError:', str(e), '\n')
         writeErrorLog(inspect.stack()[0][3], str(e))
 
 main()
